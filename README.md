@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Doresther Tradings storefront
 
-## Getting Started
+A polished, responsive Next.js ecommerce storefront with customer shopping and a private product-management workspace.
 
-First, run the development server:
+## Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000` for the customer storefront.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Private admin workspace
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The admin workspace is intentionally unlinked from the storefront and excluded from search indexing. Its route is `/atelier`.
 
-## Learn More
+Before using it, copy `.env.example` to `.env.local` and set both values:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+ADMIN_PASSWORD=use-a-long-unique-password
+ADMIN_SESSION_SECRET=use-a-random-secret-with-at-least-32-characters
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+You can generate a suitable session secret with:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
 
-## Deploy on Vercel
+On Vercel or another serverless host, add the same variables in the project’s production environment settings. The password never reaches the browser. A successful sign-in creates an HMAC-signed, HTTP-only, SameSite-Strict session cookie that expires after eight hours; production cookies are HTTPS-only.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Important deployment note
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This implementation stores the demo catalogue in browser local storage, which keeps the project deployable without database credentials. For a shared live catalogue across all customers and administrators, connect the product and order operations to a managed serverless database (for example Vercel Postgres, Neon, or Supabase) before launch. Likewise, connect checkout to Stripe or another payment provider before accepting real payments.
+
+## Checks
+
+```bash
+npm run lint
+npm run build
+```
