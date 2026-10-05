@@ -507,6 +507,37 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
   border:1px solid var(--line);
   box-shadow:0 4px 14px rgba(29,40,36,.08);
 }
+.customer-account-root {
+  position:fixed;
+  z-index:8;
+  top:87px;
+  right:0;
+  bottom:0;
+  left:0;
+  max-width:none;
+  min-height:0;
+  margin:0;
+  overflow:auto;
+  background:var(--paper);
+}
+.customer-account-actions { display:flex; align-items:center; gap:18px; }
+.customer-account-notice { padding:12px 14px; border:1px solid var(--line); background:#f1f3ec; color:#526056; font-size:13px; line-height:1.5; }
+.customer-auth-card { max-width:510px; margin:30px auto; padding:36px; border:1px solid var(--line); background:#fffefa; }
+.customer-auth-card h2 { margin:0; font:400 34px/1.05 Georgia,serif; }
+.customer-auth-card>p:not(.eyebrow) { color:#65716a; font-size:13px; line-height:1.55; }
+.customer-auth-card form { display:grid; gap:15px; margin-top:23px; }
+.customer-auth-card form label { display:grid; gap:7px; color:#56645a; font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; }
+.customer-auth-card form input { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:14px; letter-spacing:0; text-transform:none; }
+.customer-auth-card form .primary-button:disabled { opacity:.55; cursor:not-allowed; }
+.customer-orders { width:100%; }
+.customer-order-card { margin-top:14px; padding:20px; border:1px solid var(--line); background:#fffefa; }
+.customer-order-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.customer-order-heading>div { display:grid; gap:7px; }
+.customer-order-heading span,.customer-order-payment { color:#68716d; font-size:12px; }
+.customer-order-heading strong { width:max-content; padding:5px 9px; border-radius:999px; background:#f2ead7; color:#695629; font-size:9px; letter-spacing:.08em; text-transform:uppercase; }
+.customer-order-heading>b { font:400 20px Georgia,serif; }
+.customer-order-card ul { display:grid; gap:7px; margin:17px 0; padding-left:18px; color:#48564d; font-size:13px; }
+.customer-order-payment { margin:0; padding-top:13px; border-top:1px solid var(--line); }
 
 @media (max-width:760px) {
   .product-modal {
@@ -537,6 +568,12 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
   .modal-product-actions .primary-button { min-width:0; min-height:46px; }
   .modal-product-actions .detail-note { justify-content:center; font-size:9px; }
   .close-modal { top:12px; right:14px; }
+  .customer-account-root { top:68px; bottom:calc(60px + env(safe-area-inset-bottom)); padding:30px 20px; }
+  .customer-account-heading { align-items:flex-start; flex-direction:column; gap:15px; }
+  .customer-account-actions { width:100%; justify-content:space-between; }
+  .customer-auth-card { margin:5px auto; padding:24px 20px; }
+  .customer-auth-card h2 { font-size:29px; }
+  .customer-order-card { padding:15px; }
 }
 
 @keyframes productSheetIn {

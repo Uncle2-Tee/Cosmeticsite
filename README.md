@@ -14,11 +14,14 @@ Visit `http://localhost:3000` for the customer storefront.
 
 The admin workspace is intentionally unlinked from the storefront and excluded from search indexing. Its route is `/atelier`.
 
-Before using it, copy `.env.example` to `.env.local` and set both values:
+Before using it, copy `.env.example` to `.env.local` and set the admin and Supabase values:
 
 ```bash
 ADMIN_PASSWORD=use-a-long-unique-password
 ADMIN_SESSION_SECRET=use-a-random-secret-with-at-least-32-characters
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 ```
 
 You can generate a suitable session secret with:
@@ -27,11 +30,17 @@ You can generate a suitable session secret with:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-On Vercel or another serverless host, add the same variables in the project’s production environment settings. The password never reaches the browser. A successful sign-in creates an HMAC-signed, HTTP-only, SameSite-Strict session cookie that expires after eight hours; production cookies are HTTPS-only.
+Create a Supabase project and run [`supabase/migrations/20261005220000_store.sql`](./supabase/migrations/20261005220000_store.sql) in its SQL Editor. Copy the project URL and anon key into the matching variables above. Keep the service-role key server-only; never prefix it with `NEXT_PUBLIC_` or expose it in client code. Enable email/password sign-in in Supabase Authentication. Restart the development server after editing `.env.local`.
 
-## Important deployment note
+On Vercel or another serverless host, add these variables in the project’s production environment settings. The admin password never reaches the browser. A successful admin sign-in creates an HMAC-signed, HTTP-only, SameSite-Strict session cookie that expires after eight hours; production cookies are HTTPS-only.
 
-This implementation stores the demo catalogue in browser local storage, which keeps the project deployable without database credentials. For a shared live catalogue across all customers and administrators, connect the product and order operations to a managed serverless database (for example Vercel Postgres, Neon, or Supabase) before launch. Likewise, connect checkout to Stripe or another payment provider before accepting real payments.
+## Database-backed store
+
+Products and prices are loaded from Supabase and edited through admin-only server routes. Customer accounts use Supabase email/password authentication. Orders are created for the signed-in customer and stored with server-calculated prices and totals; they remain `awaiting_payment` until the Mobile Money transfer is manually verified. No card details are collected or processed. The cart and wishlist remain in the current browser and are not synced between devices yet.
+
+The API validates customer access tokens and only returns orders belonging to that customer. Database tables have row-level security enabled; privileged database access stays in server routes using `SUPABASE_SERVICE_ROLE_KEY`. Do not add public RLS policies for the service-only tables.
+
+Before accepting real payments, connect a payment provider and implement verified payment callbacks and order status updates.
 
 ## Checks
 

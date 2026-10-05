@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckIcon from "@mui/icons-material/Check";
@@ -24,6 +24,8 @@ import ShoppingBagIcon from "@mui/icons-material/ShoppingBagOutlined";
 import StarIcon from "@mui/icons-material/StarRounded";
 import { defaultProductCaution, defaultProductUsage, initialProducts, productCategories } from "../lib/catalog";
 import MobileMenu from "./components/mobile-menu";
+import CustomerAccount from "./components/customer-account";
+import { getSupabaseBrowserClient } from "../lib/supabase/browser";
 
 const categories = ["All", ...productCategories];
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
@@ -71,23 +73,53 @@ export default function Home() {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeView, setActiveView] = useState("home");
   const [activeAccountSection, setActiveAccountSection] = useState("orders");
+  const [customerSession, setCustomerSession] = useState(null);
+  const [ordersVersion, setOrdersVersion] = useState(0);
   const [productDetail, setProductDetail] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [checkoutDetails, setCheckoutDetails] = useState({ phone: "", shippingAddress: "" });
+  const [checkoutError, setCheckoutError] = useState("");
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [toast, setToast] = useState("");
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const restoreSavedStore = window.setTimeout(() => {
-      try { const savedProducts = JSON.parse(localStorage.getItem("lumera-products")); const savedCart = JSON.parse(localStorage.getItem("lumera-cart")); const savedWishlist = JSON.parse(localStorage.getItem("lumera-wishlist")); if (Array.isArray(savedProducts) && savedProducts.length) setProducts(savedProducts); if (Array.isArray(savedCart)) setCart(savedCart); if (Array.isArray(savedWishlist)) setWishlist(savedWishlist.filter((id) => typeof id === "string")); } catch { /* Browser storage can be unavailable in private contexts. */ }
+      try { const savedCart = JSON.parse(localStorage.getItem("lumera-cart")); const savedWishlist = JSON.parse(localStorage.getItem("lumera-wishlist")); if (Array.isArray(savedCart)) setCart(savedCart); if (Array.isArray(savedWishlist)) setWishlist(savedWishlist.filter((id) => typeof id === "string")); } catch { /* Browser storage can be unavailable in private contexts. */ }
       setLoaded(true);
     }, 0);
     return () => window.clearTimeout(restoreSavedStore);
   }, []);
-  useEffect(() => { if (loaded) localStorage.setItem("lumera-products", JSON.stringify(products)); }, [products, loaded]);
   useEffect(() => { if (loaded) localStorage.setItem("lumera-cart", JSON.stringify(cart)); }, [cart, loaded]);
   useEffect(() => { if (loaded) localStorage.setItem("lumera-wishlist", JSON.stringify(wishlist)); }, [wishlist, loaded]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/products")
+      .then(async (response) => {
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Shared products are unavailable.");
+        return body.products;
+      })
+      .then((savedProducts) => {
+        if (cancelled || !Array.isArray(savedProducts)) return;
+        setProducts(savedProducts);
+        setCart((current) => current.map((item) => {
+          const currentProduct = savedProducts.find((product) => product.id === item.id);
+          return currentProduct ? { ...item, ...currentProduct, quantity: item.quantity } : item;
+        }));
+      })
+      .catch(() => { if (!cancelled) setToast("Shared catalogue unavailable; showing sample products."); });
+    return () => { cancelled = true; };
+  }, []);
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return undefined;
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => { if (mounted) setCustomerSession(data.session); });
+    return () => { mounted = false; };
+  }, []);
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(""), 2800); return () => window.clearTimeout(timer); }, [toast]);
+  const handleSessionChange = useCallback((session) => setCustomerSession(session), []);
   useEffect(() => {
     const validViews = new Set(["home", "shop", "about", "account"]);
     const syncViewFromUrl = () => {
@@ -136,16 +168,51 @@ export default function Home() {
     if (sectionId === "logout") { setToast("Customer sign-in is not configured yet."); return; }
     setActiveAccountSection(sectionId);
   };
-  const completeCheckout = (event) => {
-    event.preventDefault();
-    if (paymentMethod === "momo") {
-      setToast(`Send ${money.format(subtotal + shipping)} to MoMo number 0599512072. Transfer verification is manual.`);
+  const openCheckout = () => {
+    if (!customerSession?.access_token) {
+      setCartOpen(false);
+      setToast("Sign in or create an account before placing an order.");
+      navigateTo("account");
       return;
     }
-    setCart([]);
-    setShowCheckout(false);
-    setCartOpen(false);
-    setToast("Demo payment approved — your order is confirmed.");
+    setCheckoutError("");
+    setShowCheckout(true);
+  };
+  const completeCheckout = async (event) => {
+    event.preventDefault();
+    if (!customerSession?.access_token) {
+      setShowCheckout(false);
+      setCartOpen(false);
+      setToast("Sign in or create an account before placing an order.");
+      navigateTo("account");
+      return;
+    }
+    setOrderSubmitting(true);
+    setCheckoutError("");
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${customerSession.access_token}` },
+        body: JSON.stringify({
+          items: cart.map((item) => ({ productId: item.id, quantity: item.quantity })),
+          phone: checkoutDetails.phone,
+          shippingAddress: checkoutDetails.shippingAddress,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Could not place the order.");
+      setCart([]);
+      setShowCheckout(false);
+      setCartOpen(false);
+      setOrdersVersion((version) => version + 1);
+      setActiveAccountSection("orders");
+      setToast(`Order saved. Send ${money.format(Number(body.order.total))} to MoMo number 0599512072; it will remain pending until verified.`);
+      setCheckoutDetails({ phone: "", shippingAddress: "" });
+    } catch (error) {
+      setCheckoutError(error.message || "Could not place the order.");
+    } finally {
+      setOrderSubmitting(false);
+    }
   };
 
   return <main className={`page-view page-${activeView}`}>
@@ -162,8 +229,10 @@ export default function Home() {
     {activeView === "account" && <section className="account-page"><header className="account-heading"><div><p className="eyebrow">Customer account</p><h1>Welcome, Elliot</h1><p>Your orders and account preferences, all in one place.</p></div><button className="account-cart-link" onClick={() => setCartOpen(true)}><Icon name="bag" size={17} /> Cart <span>{cartCount}</span></button></header><div className="account-layout"><nav className="account-sidebar" aria-label="Account sections">{accountSections.map((section) => <button key={section.id} className={activeAccountSection === section.id ? "active" : ""} onClick={() => selectAccountSection(section.id)}><Icon name={section.icon} size={18} /><span>{section.label}</span>{section.id === "cart" && cartCount > 0 && <b>{cartCount}</b>}</button>)}</nav><section className="account-content">{activeAccountSection === "orders" && <><div className="account-section-heading"><div><p className="eyebrow">Your account</p><h2>Order history</h2></div><span>0 orders</span></div><article className="account-order"><div className="account-order-top"><div><p className="eyebrow">Delivery status</p><h3>0 items delivered</h3></div><span className="order-status"><i />No deliveries yet</span></div><div className="account-order-summary"><div><span>Order total</span><strong>GH₵0</strong></div><span>Awaiting orders</span></div><button className="account-text-action" onClick={() => navigateTo("shop")}>Browse products <Icon name="arrow" size={15} /></button></article></>}{activeAccountSection === "profile" && <AccountEmptyState title="My Profile" message="Profile details will appear here once customer accounts are connected." />    }{activeAccountSection === "wishlist" && <><div className="account-section-heading wishlist-heading"><div><p className="eyebrow">Saved for later</p><h2>My Wishlist <span aria-hidden="true">♥</span></h2></div><span>{wishlistProducts.length} {wishlistProducts.length === 1 ? "item" : "items"}</span></div>{wishlistProducts.length ? <div className="wishlist-grid">{wishlistProducts.map((product) => <article className="wishlist-card" key={product.id}><div className="wishlist-card-image" style={{ backgroundImage: `url(${product.image})` }} role="img" aria-label={product.name}><button className="wishlist-remove" onClick={() => removeFromWishlist(product)} aria-label={`Remove ${product.name} from wishlist`}><Icon name="favorite" size={19} /></button>{product.badge && <span className="product-badge">{product.badge}</span>}</div><div className="wishlist-card-info"><p className="eyebrow">{product.category}</p><h3>{product.name}</h3><p className="wishlist-card-price">{money.format(product.price)}{product.originalPrice > product.price && <del>{money.format(product.originalPrice)}</del>}</p><div className="wishlist-product-meta"><span>{product.discountLabel || (product.discountPercent ? `${product.discountPercent}% off` : "No current discount")}</span><span className={product.rating ? "wishlist-rating rated" : "wishlist-rating"}>{product.rating ? <><Icon name="star" size={15} /> {product.rating}</> : "Not rated"}</span></div><button className="add-to-cart-button" onClick={() => addToCart(product)}>Add to cart <Icon name="bag" size={16} /></button></div></article>)}</div> : <div className="wishlist-empty"><div className="wishlist-empty-icon"><Icon name="heart" size={25} /></div><h3>Your wishlist is empty</h3><p>Save products you love and find them here later.</p><button className="primary-button" onClick={() => navigateTo("shop")}>Continue Shopping <Icon name="arrow" size={17} /></button></div>}</>}{activeAccountSection === "addresses" && <AccountEmptyState title="Delivery Addresses" message="No saved delivery addresses yet." />}{activeAccountSection === "payments" && <AccountEmptyState title="Payment Methods" message="No saved payment methods. Payment details are not stored in this demo." />}{activeAccountSection === "returns" && <div className="account-empty"><p className="eyebrow">Order support</p><h2>Returns & Refunds</h2><p>For help with a return or refund, contact our support team with your order number.</p><a className="account-text-action" href="https://wa.me/233240958153" target="_blank" rel="noreferrer">Contact support <Icon name="arrow" size={15} /></a></div>}{activeAccountSection === "notifications" && <AccountEmptyState title="Notifications" message="You’re all caught up. Account notifications will appear here." />}{activeAccountSection === "settings" && <AccountEmptyState title="Settings" message="Account settings will be available when customer sign-in is connected." />}{activeAccountSection === "support" && <div className="account-empty"><p className="eyebrow">We’re here to help</p><h2>Help & Support</h2><p>Call us at <a href="tel:+233535082115">0535082115</a> or message us on WhatsApp.</p><a className="account-text-action" href="https://wa.me/233240958153" target="_blank" rel="noreferrer">Message on WhatsApp <Icon name="arrow" size={15} /></a></div>}</section></div></section>}
     <footer><div className="brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div className="footer-nav"><button onClick={() => navigateTo("shop")}>Shop</button><button onClick={() => navigateTo("about")}>About</button></div><address className="business-contact"><div className="business-contact-identity"><p className="eyebrow">Produced by</p><strong>Doresther Tradings</strong></div><div className="business-address"><span>LX42 Flora ST</span><span>Amasaman- Ashialaja</span><span>GPS Address: GS 0775-9834</span></div><div className="business-phones"><a href="tel:+233535082115">0535082115</a><span>/</span><a href="tel:+233502254133">0502254133</a></div></address><p className="footer-copyright">© 2026 Doresther Tradings. Made with intention. <span className="designer-credit"><span className="designer-credit-label">Designed by</span><strong>Uncle T</strong></span></p></footer>
     {toast && <div className="toast"><span><Icon name="check" size={17} /></span>{toast}</div>}
-    {isCartOpen && <><button className="modal-backdrop" onClick={() => setCartOpen(false)} aria-label="Close cart" /><aside className="cart-drawer" aria-modal="true" role="dialog" aria-label="Your shopping cart"><div className="drawer-header"><h2>Your cart <span>({cartCount})</span></h2><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Close cart"><Icon name="close" /></button></div>{cart.length ? <><div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><span className="cart-image" style={{ backgroundImage: `url(${item.image})` }} /><div><p className="eyebrow">{item.category}</p><h3>{item.name}</h3><p>{money.format(item.price)}</p><div className="quantity"><button onClick={() => updateQuantity(item.id, -1)} aria-label={`Decrease ${item.name}`}><Icon name="minus" size={14} /></button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} aria-label={`Increase ${item.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-button" onClick={() => updateQuantity(item.id, -item.quantity)}>Remove</button></div>)}</div><div className="cart-summary"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Shipping</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p><button className="primary-button wide" onClick={() => setShowCheckout(true)}>Secure checkout <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Secure, encrypted checkout</small></div></> : <div className="cart-empty"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Your cart is waiting.</h3><p>Add an essential to begin your ritual.</p><button className="primary-button" onClick={() => setCartOpen(false)}>Shop collection <Icon name="arrow" size={18} /></button></div>}</aside></>}
+    {isCartOpen && <><button className="modal-backdrop" onClick={() => setCartOpen(false)} aria-label="Close cart" /><aside className="cart-drawer" aria-modal="true" role="dialog" aria-label="Your shopping cart"><div className="drawer-header"><h2>Your cart <span>({cartCount})</span></h2><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Close cart"><Icon name="close" /></button></div>{cart.length ? <><div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><span className="cart-image" style={{ backgroundImage: `url(${item.image})` }} /><div><p className="eyebrow">{item.category}</p><h3>{item.name}</h3><p>{money.format(item.price)}</p><div className="quantity"><button onClick={() => updateQuantity(item.id, -1)} aria-label={`Decrease ${item.name}`}><Icon name="minus" size={14} /></button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} aria-label={`Increase ${item.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-button" onClick={() => updateQuantity(item.id, -item.quantity)}>Remove</button></div>)}</div><div className="cart-summary"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Shipping</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p><button className="primary-button wide" onClick={openCheckout}>Secure checkout <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Sign in required · payment will be verified manually</small></div></> : <div className="cart-empty"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Your cart is waiting.</h3><p>Add an essential to begin your ritual.</p><button className="primary-button" onClick={() => setCartOpen(false)}>Shop collection <Icon name="arrow" size={18} /></button></div>}</aside></>}
     {productDetail && <><button className="modal-backdrop" onClick={() => setProductDetail(null)} aria-label="Close product details" /><div className="product-modal" role="dialog" aria-modal="true" aria-label={productDetail.name}><button className="icon-button close-modal" onClick={() => setProductDetail(null)} aria-label="Close product details"><Icon name="close" /></button><div className="modal-product-image" style={{ backgroundImage: `url(${productDetail.image})` }} /><div className="modal-product-panel"><div className="modal-product-copy"><p className="eyebrow">{productDetail.category}</p><h2>{productDetail.name}</h2><p className="modal-price">{money.format(productDetail.price)} <span>· {productDetail.size}</span></p><button className="account-text-action product-modal-wishlist" onClick={() => toggleWishlist(productDetail)}><Icon name={wishlist.includes(productDetail.id) ? "favorite" : "heart"} size={17} /> {wishlist.includes(productDetail.id) ? "Saved to wishlist" : "Save to wishlist"}</button><section className="product-guide" aria-label="Product guide"><h3>Product Guide</h3><details open><summary>Product Description</summary><p>{productDetail.description || "Product information is not available yet."}</p></details><details><summary>How to Use</summary><ProductGuideList content={productDetail.howToUse || defaultProductUsage} numbered /></details><details><summary>Caution</summary><ProductGuideList content={productDetail.caution || defaultProductCaution} /></details></section></div><div className="modal-product-actions"><button className="primary-button wide" onClick={() => { addToCart(productDetail); setProductDetail(null); setCartOpen(true); }}>Add to cart <Icon name="bag" size={18} /></button><p className="detail-note"><Icon name="shield" size={17} /> Thoughtfully formulated. Always cruelty-free.</p></div></div></div></>}
-    {showCheckout && <><button className="modal-backdrop" onClick={() => setShowCheckout(false)} aria-label="Close checkout" /><section className="checkout-modal" role="dialog" aria-modal="true" aria-label="Secure checkout"><button className="icon-button close-modal" onClick={() => setShowCheckout(false)} aria-label="Close checkout"><Icon name="close" /></button><p className="eyebrow">Secure checkout</p><h2>Almost yours.</h2><p className="checkout-intro">Complete your details below to reserve your ritual.</p><form onSubmit={completeCheckout}><div className="form-row"><label>First name<input required autoComplete="given-name" /></label><label>Last name<input required autoComplete="family-name" /></label></div><label>Email<input required type="email" autoComplete="email" /></label><div className="payment-methods" role="group" aria-label="Payment method"><button type="button" className={paymentMethod === "card" ? "active" : ""} onClick={() => setPaymentMethod("card")}>Card</button><button type="button" className={paymentMethod === "momo" ? "active" : ""} onClick={() => setPaymentMethod("momo")}>Mobile Money</button></div>{paymentMethod === "card" ? <label>Card details<div className="card-field"><Icon name="shield" size={17} /><input required inputMode="numeric" placeholder="4242 4242 4242 4242" /></div></label> : <div className="momo-payment"><p className="eyebrow">Mobile Money transfer</p><p>Send <strong>{money.format(subtotal + shipping)}</strong> to</p><b className="momo-number">0599512072</b><small>Orders are confirmed after the transfer is manually verified. Do not send a PIN or MoMo authorization code.</small></div>}<div className="checkout-total"><span>Total due</span><b>{money.format(subtotal + shipping)}</b></div><button className="primary-button wide" type="submit">{paymentMethod === "card" ? `Pay ${money.format(subtotal + shipping)}` : "Show MoMo payment details"} <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> {paymentMethod === "card" ? "Demo card payment — no card data is stored or processed." : "Manual MoMo transfer — payment is not verified automatically."}</small></form></section></>}
+    {showCheckout && <><button className="modal-backdrop" onClick={() => setShowCheckout(false)} aria-label="Close checkout" /><section className="checkout-modal" role="dialog" aria-modal="true" aria-label="Place your order"><button className="icon-button close-modal" onClick={() => setShowCheckout(false)} aria-label="Close checkout"><Icon name="close" /></button><p className="eyebrow">Order details</p><h2>Almost yours.</h2><p className="checkout-intro">Your order will be saved as awaiting payment. We’ll verify your Mobile Money transfer manually.</p><form onSubmit={completeCheckout}><label>Mobile number<input required autoComplete="tel" type="tel" value={checkoutDetails.phone} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, phone: event.target.value })} placeholder="Your contact number" /></label><label>Delivery address<textarea required autoComplete="street-address" minLength={8} maxLength={500} value={checkoutDetails.shippingAddress} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, shippingAddress: event.target.value })} placeholder="Street, area, city, and delivery directions" /></label><div className="momo-payment"><p className="eyebrow">Manual Mobile Money payment</p><p>After placing the order, send <strong>{money.format(subtotal + shipping)}</strong> to</p><b className="momo-number">0599512072</b><small>Do not share your PIN or MoMo authorization code. Your order remains pending until payment is verified.</small></div><div className="checkout-total"><span>Estimated total</span><b>{money.format(subtotal + shipping)}</b></div>{checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}<button className="primary-button wide" type="submit" disabled={orderSubmitting}>{orderSubmitting ? "Saving order…" : "Place order"} <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Prices and total are confirmed by the server when the order is placed.</small></form></section></>}
+    {activeView === "account" && <CustomerAccount onSessionChange={handleSessionChange} activeSection={activeAccountSection} onSelectSection={setActiveAccountSection} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />}
+    {activeView === "account" && <CustomerAccount onSessionChange={handleSessionChange} activeSection={activeAccountSection} onSelectSection={setActiveAccountSection} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />}
   </main>;
 }

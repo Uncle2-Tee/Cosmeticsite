@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
-export const ADMIN_SESSION_COOKIE = "lumera_admin_session";
+export const ADMIN_SESSION_COOKIE = "doresther_admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 8;
 
 function sessionSecret() {
@@ -51,6 +51,6 @@ export const adminSessionOptions = {
   httpOnly: true,
   sameSite: "strict",
   secure: process.env.NODE_ENV === "production",
-  path: "/atelier",
+  path: "/",
   maxAge: SESSION_MAX_AGE,
 };
