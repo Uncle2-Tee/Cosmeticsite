@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import ShoppingBagIcon from "@mui/icons-material/ShoppingBagOutlined";
 
 function CloseIcon() {
-  return <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>;
+  return <CloseRoundedIcon sx={{ fontSize: 21 }} aria-hidden="true" focusable="false" />;
 }
 
 function BagIcon() {
-  return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 8.5h14l-1 12H6l-1-12Z" /><path d="M8.5 9V6.5a3.5 3.5 0 0 1 7 0V9" /></svg>;
+  return <ShoppingBagIcon sx={{ fontSize: 19 }} aria-hidden="true" focusable="false" />;
 }
 
 export default function MobileMenu({ isOpen, onClose, onNavigate, onOpenCart, cartCount }) {
@@ -39,8 +41,9 @@ export default function MobileMenu({ isOpen, onClose, onNavigate, onOpenCart, ca
       <nav aria-label="Mobile navigation">
         <button onClick={() => navigate("home")}>Home <span>00</span></button>
         <button onClick={() => navigate("shop")}>Shop <span>01</span></button>
-        <button onClick={() => navigate("ritual")}>Our ritual <span>02</span></button>
+        <button onClick={() => navigate("about")}>About <span>02</span></button>
         <button onClick={() => navigate("journal")}>Journal <span>03</span></button>
+        <button onClick={() => navigate("account")}>Account <span>04</span></button>
       </nav>
       <div className="mobile-menu-bottom">
         <p>Intentional essentials, made for your everyday.</p>
