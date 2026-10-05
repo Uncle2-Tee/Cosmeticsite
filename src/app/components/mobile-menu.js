@@ -2,7 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBagOutlined";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 
 function CloseIcon() {
   return <CloseRoundedIcon sx={{ fontSize: 21 }} aria-hidden="true" focusable="false" />;
@@ -10,6 +14,10 @@ function CloseIcon() {
 
 function BagIcon() {
   return <ShoppingBagIcon sx={{ fontSize: 19 }} aria-hidden="true" focusable="false" />;
+}
+
+function MenuLink({ icon: Icon, children }) {
+  return <span className="mobile-menu-link"><Icon sx={{ fontSize: 20 }} aria-hidden="true" focusable="false" /><span>{children}</span></span>;
 }
 
 export default function MobileMenu({ isOpen, onClose, onNavigate, onOpenCart, cartCount }) {
@@ -37,13 +45,12 @@ export default function MobileMenu({ isOpen, onClose, onNavigate, onOpenCart, ca
     <button className="mobile-menu-backdrop" onClick={onClose} aria-label="Close navigation" />
     <aside className="mobile-menu" id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Mobile navigation">
       <div className="mobile-menu-top"><span className="mobile-menu-label">Navigation</span><button ref={closeButtonRef} onClick={onClose} aria-label="Close navigation"><CloseIcon /></button></div>
-      <button className="mobile-menu-brand brand-mark" aria-label="Doresther Tradings home" onClick={() => navigate("home")}><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></button>
+      <div className="mobile-menu-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div>
       <nav aria-label="Mobile navigation">
-        <button onClick={() => navigate("home")}>Home <span>00</span></button>
-        <button onClick={() => navigate("shop")}>Shop <span>01</span></button>
-        <button onClick={() => navigate("about")}>About <span>02</span></button>
-        <button onClick={() => navigate("journal")}>Journal <span>03</span></button>
-        <button onClick={() => navigate("account")}>Account <span>04</span></button>
+        <button onClick={() => navigate("home")}><MenuLink icon={HomeOutlinedIcon}>Home</MenuLink><span>00</span></button>
+        <button onClick={() => navigate("shop")}><MenuLink icon={StorefrontOutlinedIcon}>Shop</MenuLink><span>01</span></button>
+        <button onClick={() => navigate("about")}><MenuLink icon={InfoOutlinedIcon}>About</MenuLink><span>02</span></button>
+        <button onClick={() => navigate("account")}><MenuLink icon={PersonOutlineOutlinedIcon}>Account</MenuLink><span>03</span></button>
       </nav>
       <div className="mobile-menu-bottom">
         <p>Intentional essentials, made for your everyday.</p>

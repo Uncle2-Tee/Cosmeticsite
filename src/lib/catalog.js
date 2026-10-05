@@ -8,3 +8,6 @@ export const initialProducts = [
 ];
 
 export const productCategories = ["Serums", "Moisturizers", "Cleansers", "Makeup", "Body care"];
+
+export const defaultProductUsage = "1. Open the package.\n2. Apply/use the product as directed.\n3. Store properly after use.";
+export const defaultProductCaution = "Keep away from children.\nDo not use if damaged.\nStop use if irritation occurs.";
