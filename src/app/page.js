@@ -108,7 +108,7 @@ export default function Home() {
           return currentProduct ? { ...item, ...currentProduct, quantity: item.quantity } : item;
         }));
       })
-      .catch(() => { if (!cancelled) setToast("Shared catalogue unavailable; showing sample products."); });
+      .catch((error) => { if (!cancelled) setToast(error.message || "Shared catalogue unavailable; showing sample products."); });
     return () => { cancelled = true; };
   }, []);
   useEffect(() => {

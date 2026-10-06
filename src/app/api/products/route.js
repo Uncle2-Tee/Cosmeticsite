@@ -12,7 +12,13 @@ export async function GET() {
   try {
     const supabase = createServiceSupabaseClient();
     const { data, error } = await supabase.from("products").select("*").order("sort_order", { ascending: true });
-    if (error) throw error;
+    if (error) {
+      console.error("Could not read the shared product catalogue:", error);
+      if (error.code === "PGRST205" || error.code === "42P01") {
+        return NextResponse.json({ error: "The Supabase products table is missing. Run the store migration in the project SQL Editor." }, { status: 503 });
+      }
+      return NextResponse.json({ error: "Could not load products from the database. Check the Supabase project URL, service-role key, and database access." }, { status: 503 });
+    }
     return NextResponse.json({ products: data.map(productFromDatabaseRow) });
   } catch (error) {
     console.error("Could not read the shared product catalogue:", error);
