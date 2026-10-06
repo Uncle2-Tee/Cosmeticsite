@@ -598,5 +598,24 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
 
 @media (max-width:760px) {
   .site-header .brand-mark .brand-word { font-size:23px; }
-  .site-header .brand-mark .brand-tradings { font-size:7px; }
+  .site-header .brand-mark {
+    min-height:38px;
+    flex-shrink:0;
+    justify-content:center;
+    gap:5px;
+    overflow:visible;
+  }
+  .site-header .brand-mark .brand-tradings {
+    display:block;
+    margin:0 0 0 2px;
+    color:#3f5a46;
+    font:700 9px/1 Arial,Helvetica,sans-serif;
+    letter-spacing:.24em;
+    vertical-align:baseline;
+  }
+}
+
+@media (max-width:360px) {
+  .site-header .brand-mark .brand-word { font-size:19px; }
+  .site-header .brand-mark .brand-tradings { font-size:8px; }
 }
