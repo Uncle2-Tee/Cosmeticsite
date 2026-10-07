@@ -22,6 +22,7 @@ ADMIN_SESSION_SECRET=use-a-random-secret-with-at-least-32-characters
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+SUPABASE_DB_URL=postgresql://postgres.PROJECT_REF:ROTATED_DATABASE_PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
 ```
 
 You can generate a suitable session secret with:
@@ -30,7 +31,7 @@ You can generate a suitable session secret with:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-Create a Supabase project and run [`supabase/migrations/20261005220000_store.sql`](./supabase/migrations/20261005220000_store.sql) in its SQL Editor. Copy the project URL and anon key into the matching variables above. Keep the service-role key server-only; never prefix it with `NEXT_PUBLIC_` or expose it in client code. Enable email/password sign-in in Supabase Authentication. Restart the development server after editing `.env.local`.
+Create a Supabase project and run [`supabase/migrations/20261005220000_store.sql`](./supabase/migrations/20261005220000_store.sql) in its SQL Editor. Copy the project URL and anon key into the matching variables above. Keep the service-role key server-only; never prefix it with `NEXT_PUBLIC_` or expose it in client code. `SUPABASE_DB_URL` is only for direct PostgreSQL tools and migrations; the storefront uses the Supabase API keys above. Use the Session pooler connection URI for database tooling and keep it private. Enable email/password sign-in in Supabase Authentication. Restart the development server after editing `.env.local`.
 
 On Vercel or another serverless host, add these variables in the project’s production environment settings. The admin password never reaches the browser. A successful admin sign-in creates an HMAC-signed, HTTP-only, SameSite-Strict session cookie that expires after eight hours; production cookies are HTTPS-only.
 

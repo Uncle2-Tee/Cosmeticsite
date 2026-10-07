@@ -19,6 +19,7 @@ export default function AdminDashboard() {
   const [priceDrafts, setPriceDrafts] = useState({});
   const [featuredDescription, setFeaturedDescription] = useState("");
   const [message, setMessage] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [databaseReady, setDatabaseReady] = useState(false);
   const router = useRouter();
 
@@ -44,15 +45,34 @@ export default function AdminDashboard() {
 
   async function addProduct(event) {
     event.preventDefault();
+    if (uploadingImage) return;
     if (!databaseReady) return;
+    if (!form.image) { setMessage("Upload a product image."); return; }
     const description = form.description.trim() || "A considered beauty essential, made for your daily ritual.";
-    const product = { id: `${Date.now()}-${form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, name: form.name.trim(), category: form.category, price: Number(form.price), size: form.size.trim() || "50 ml", image: form.image.trim() || "https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85", description, cardDescription: form.cardDescription.trim() || description, howToUse: form.howToUse.trim() || defaultProductUsage, caution: form.caution.trim() || defaultProductCaution, badge: "Just added" };
+    const product = { id: `${Date.now()}-${form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, name: form.name.trim(), category: form.category, price: Number(form.price), size: form.size.trim() || "50 ml", image: form.image, description, cardDescription: form.cardDescription.trim() || description, howToUse: form.howToUse.trim() || defaultProductUsage, caution: form.caution.trim() || defaultProductCaution, badge: "Just added" };
     try {
       const { product: saved } = await readApiResponse(await fetch("/api/admin/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product }) }));
       setProducts((current) => [saved, ...current]);
       setForm(emptyForm);
       setMessage(`${saved.name} has been published.`);
     } catch (error) { setMessage(error.message); }
+  }
+
+  async function handleImageUpload(event) {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) { setMessage("Image file must be smaller than 5 MB."); return; }
+    if (!file.type.startsWith("image/")) { setMessage("File must be an image."); return; }
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { url } = await readApiResponse(await fetch("/api/admin/upload-image", { method: "POST", body: formData }));
+      setForm({ ...form, image: url });
+      setMessage(`${file.name} uploaded.`);
+    } catch (error) { setMessage(error.message); }
+    finally { setUploadingImage(false); }
   }
 
   async function deleteProduct(product) {
@@ -103,7 +123,7 @@ export default function AdminDashboard() {
         <div className="panel-heading"><div><p className="atelier-kicker">New listing</p><h2>Add a product</h2></div></div>
         <label>Product name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Dew Ritual Essence" /></label>
         <div className="field-row"><label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{productCategories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (GHS)<input required min="0.01" step="0.01" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="36.00" /></label></div>
-        <div className="field-row"><label>Size<input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} placeholder="50 ml" /></label><label>Image URL<input value={form.image} onChange={(event) => setForm({ ...form, image: event.target.value })} placeholder="https://" /></label></div>
+        <div className="field-row"><label>Size<input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} placeholder="50 ml" /></label><label>Product Image<input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />{form.image && <span className="upload-status" style={{ fontSize: "0.85em", color: "#666", marginTop: "0.25em", display: "block" }}>✓ Image ready</span>}</label></div>
         <label>Description<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="A short, inviting description." /></label>
         <label>Home card description<textarea value={form.cardDescription} onChange={(event) => setForm({ ...form, cardDescription: event.target.value })} placeholder="Short copy displayed over the featured product." /></label>
         <label>How to use<textarea value={form.howToUse} onChange={(event) => setForm({ ...form, howToUse: event.target.value })} rows={3} /></label>
