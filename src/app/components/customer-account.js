@@ -40,7 +40,7 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-GH", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export default function CustomerAccount({ onSessionChange, onSignUpStart, onSignInSuccess, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
+export default function CustomerAccount({ onSessionChange, onSignUpStart, onSignInSuccess, onPasswordResetComplete, isPasswordRecovery, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
   const supabase = getSupabaseBrowserClient();
   const [session, setSession] = useState(null);
   const [authMode, setAuthMode] = useState("signin");
@@ -64,7 +64,8 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
       setAuthChecked(true);
       onSessionChange(data.session);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "PASSWORD_RECOVERY") setAuthMode("reset");
       setSession(nextSession);
       setOrders(null);
       setAuthChecked(true);
@@ -96,14 +97,30 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
       setMessage("Customer accounts are unavailable until the Supabase URL and public key are configured.");
       return;
     }
-    if (authMode === "signup" && form.password !== form.confirmPassword) {
+    const currentAuthMode = isPasswordRecovery ? "reset" : authMode;
+    if ((currentAuthMode === "signup" || currentAuthMode === "reset") && form.password !== form.confirmPassword) {
       setMessage("Your passwords do not match. Please check and try again.");
       return;
     }
     setBusy(true);
     setMessage("");
     try {
-      if (authMode === "signup") {
+      if (currentAuthMode === "recovery") {
+        const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim().toLowerCase(), {
+          redirectTo: `${window.location.origin}/?view=reset-password`,
+        });
+        if (error) throw error;
+        setMessage("If an account with that email exists, we’ve sent a password reset link. Please check your inbox.");
+      } else if (currentAuthMode === "reset") {
+        const { error } = await supabase.auth.updateUser({ password: form.password });
+        if (error) throw error;
+        setRequireSignIn(true);
+        setAuthMode("signin");
+        setForm((current) => ({ ...current, password: "", confirmPassword: "" }));
+        onSignUpStart();
+        onPasswordResetComplete();
+        setMessage("Your password has been updated. Please sign in with your new password.");
+      } else if (currentAuthMode === "signup") {
         setRequireSignIn(true);
         onSignUpStart();
         const { data, error } = await supabase.auth.signUp({
@@ -144,41 +161,45 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
     if (error) setMessage(error.message);
   }
 
-  if (!session?.user || requireSignIn) {
-    const isSigningUp = authMode === "signup";
+  if (!session?.user || requireSignIn || isPasswordRecovery || authMode === "recovery" || authMode === "reset") {
+    const currentAuthMode = isPasswordRecovery ? "reset" : authMode;
+    const isSigningUp = currentAuthMode === "signup";
+    const isRecoveringPassword = currentAuthMode === "recovery";
+    const isResettingPassword = currentAuthMode === "reset";
     return <section className="customer-account-root customer-auth-screen">
       <div className="customer-auth-card">
         <div className="customer-auth-wordmark" aria-label="Doresther Trading">
           <span className="customer-auth-monogram">D</span>
           <span className="customer-auth-brand-name">Doresther <em>Trading</em></span>
         </div>
-        <h1>{isSigningUp ? "Create Account" : "Welcome Back"}</h1>
-        <p className="customer-auth-intro">{isSigningUp ? "Join us for thoughtful essentials and easy order tracking." : "Log in to continue to your Doresther Trading account."}</p>
+        <h1>{isSigningUp ? "Sign Up" : isRecoveringPassword ? "Forgot Password?" : isResettingPassword ? "Reset Password" : "Welcome Back"}</h1>
+        <p className="customer-auth-intro">{isSigningUp ? "Join us for thoughtful essentials and easy order tracking." : isRecoveringPassword ? "Enter the email address linked to your account and we’ll send you a secure reset link." : isResettingPassword ? "Choose a new password for your Doresther Trading account." : "Log in to continue to your Doresther Trading account."}</p>
         {!supabase && <p className="customer-account-notice" role="status">Customer accounts are temporarily unavailable. Please try again later.</p>}
         <form onSubmit={submitAuth}>
           {isSigningUp && <label htmlFor="customer-full-name">Full name<input id="customer-full-name" name="name" type="text" autoComplete="name" placeholder="e.g. Elliot Fiawornu" required maxLength={120} value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>}
           <label htmlFor="customer-email">Email<input id="customer-email" name="email" type="email" autoComplete="email" placeholder="e.g. elliot@example.com" required maxLength={254} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-          <label htmlFor="customer-password">Password
+          {!isRecoveringPassword && <label htmlFor="customer-password">{isResettingPassword ? "New password" : "Password"}
             <span className="customer-password-field">
-              <input id="customer-password" name="password" type={showPassword ? "text" : "password"} autoComplete={isSigningUp ? "new-password" : "current-password"} placeholder="Password" minLength={8} required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+              <input id="customer-password" name="password" type={showPassword ? "text" : "password"} autoComplete={isSigningUp || isResettingPassword ? "new-password" : "current-password"} placeholder={isResettingPassword ? "New password" : "Password"} minLength={8} required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
               <button type="button" className="customer-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>{showPassword ? <VisibilityOffIcon fontSize="small" aria-hidden="true" /> : <VisibilityIcon fontSize="small" aria-hidden="true" />}</button>
             </span>
-          </label>
-          {isSigningUp && <>
-            <label htmlFor="customer-confirm-password">Confirm password
+          </label>}
+          {(isSigningUp || isResettingPassword) && <>
+            <label htmlFor="customer-confirm-password">{isResettingPassword ? "Confirm new password" : "Confirm password"}
               <span className="customer-password-field">
-                <input id="customer-confirm-password" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" placeholder="Confirm password" minLength={8} required value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} />
+                <input id="customer-confirm-password" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" placeholder={isResettingPassword ? "Confirm new password" : "Confirm password"} minLength={8} required value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} />
                 <button type="button" className="customer-password-toggle" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmPassword}>{showConfirmPassword ? <VisibilityOffIcon fontSize="small" aria-hidden="true" /> : <VisibilityIcon fontSize="small" aria-hidden="true" />}</button>
               </span>
             </label>
             <p className="customer-password-hint">Use at least 8 characters.</p>
           </>}
+          {!isSigningUp && !isRecoveringPassword && !isResettingPassword && <button className="customer-forgot-link" type="button" onClick={() => { setAuthMode("recovery"); setMessage(""); setForm((current) => ({ ...current, password: "", confirmPassword: "" })); }}>Forgot password?</button>}
           {message && <p className="customer-account-notice" role="status" aria-live="polite">{message}</p>}
-          <button className="primary-button wide" type="submit" disabled={busy || !supabase}>{busy ? "Please wait…" : isSigningUp ? "Create Account" : "Log In"}</button>
+          <button className="primary-button wide" type="submit" disabled={busy || !supabase}>{busy ? "Please wait…" : isSigningUp ? "Sign Up" : isRecoveringPassword ? "Send Reset Link" : isResettingPassword ? "Save New Password" : "Log In"}</button>
         </form>
-        <p className="customer-auth-switch">{isSigningUp ? "Already have an account?" : "New to Doresther Trading?"}
-          <button className="account-text-action" type="button" onClick={() => { setAuthMode(isSigningUp ? "signin" : "signup"); setMessage(""); setShowPassword(false); setShowConfirmPassword(false); setForm((current) => ({ ...current, password: "", confirmPassword: "" })); }}>
-            {isSigningUp ? "Log In" : "Create Account"}
+        <p className="customer-auth-switch">{isSigningUp ? "Already have an account?" : isRecoveringPassword || isResettingPassword ? "Remembered your password?" : "New to Doresther Trading?"}
+          <button className="account-text-action" type="button" onClick={() => { setAuthMode(isSigningUp || isRecoveringPassword || isResettingPassword ? "signin" : "signup"); setMessage(""); setShowPassword(false); setShowConfirmPassword(false); setForm((current) => ({ ...current, password: "", confirmPassword: "" })); }}>
+            {isSigningUp || isRecoveringPassword || isResettingPassword ? "Log In" : "Sign Up"}
           </button>
         </p>
       </div>

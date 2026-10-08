@@ -144,8 +144,12 @@ export default function Home() {
   const handleSessionChange = useCallback((session) => setCustomerSession(session), []);
   const handleSignUpStart = useCallback(() => setRequireExplicitSignIn(true), []);
   const handleSignInSuccess = useCallback(() => setRequireExplicitSignIn(false), []);
+  const handlePasswordResetComplete = useCallback(() => {
+    setActiveView("home");
+    window.history.replaceState({}, "", "/");
+  }, []);
   useEffect(() => {
-    const validViews = new Set(["home", "shop", "about", "account"]);
+    const validViews = new Set(["home", "shop", "about", "account", "reset-password"]);
     const syncViewFromUrl = () => {
       const nextView = new URLSearchParams(window.location.search).get("view") || "home";
       setActiveView(validViews.has(nextView) ? nextView : "home");
@@ -243,8 +247,8 @@ export default function Home() {
     }
   };
 
-  const customerAccount = <CustomerAccount onSessionChange={handleSessionChange} onSignUpStart={handleSignUpStart} onSignInSuccess={handleSignInSuccess} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
-  if (!authChecked || !customerSession?.user || requireExplicitSignIn) {
+  const customerAccount = <CustomerAccount onSessionChange={handleSessionChange} onSignUpStart={handleSignUpStart} onSignInSuccess={handleSignInSuccess} onPasswordResetComplete={handlePasswordResetComplete} isPasswordRecovery={activeView === "reset-password"} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
+  if (!authChecked || !customerSession?.user || requireExplicitSignIn || activeView === "reset-password") {
     return <main className="page-view auth-gate">
       {!authChecked ? <section className="customer-account-root customer-auth-screen"><p className="customer-account-notice" role="status">Verifying your account…</p></section> : <>
         {authError && <p className="auth-gate-error" role="alert">{authError}</p>}

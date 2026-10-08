@@ -556,6 +556,9 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
 .customer-auth-card form .primary-button { min-height:49px; margin-top:3px; border:0; border-radius:11px; background:linear-gradient(100deg,#f89242,#f47b2b); box-shadow:0 7px 15px rgba(233,121,47,.2); color:#fff; font-size:14px; font-weight:600; letter-spacing:.01em; }
 .customer-auth-card form .primary-button:hover:not(:disabled) { background:linear-gradient(100deg,#ed7f30,#e96d20); box-shadow:0 9px 18px rgba(233,121,47,.26); }
 .customer-auth-card form .primary-button:disabled { opacity:.58; cursor:not-allowed; }
+.customer-forgot-link { justify-self:end; margin:-4px 0 0; padding:2px 0; border:0; background:none; color:#d96f27; font-size:11px; font-weight:600; cursor:pointer; }
+.customer-forgot-link:hover { color:#ae4d15; text-decoration:underline; }
+.customer-forgot-link:focus-visible { outline:2px solid #f18a46; outline-offset:3px; border-radius:2px; }
 .auth-gate { min-height:100dvh; }
 .auth-gate .customer-account-root { top:0; bottom:0; }
 .auth-gate-error { position:fixed; z-index:9; top:12px; left:50%; width:min(calc(100% - 32px),510px); margin:0; padding:12px 14px; transform:translateX(-50%); border:1px solid #d9b9b9; background:#fff5f3; color:#873f3f; font-size:13px; line-height:1.5; }
