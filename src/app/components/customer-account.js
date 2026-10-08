@@ -208,11 +208,11 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
 
   const fullName = session.user.user_metadata?.full_name || session.user.email;
   return <section className="account-page customer-account-root">
-    <header className="account-heading"><div><p className="eyebrow">Customer account</p><h1>Welcome, {fullName}</h1><p>{session.user.email}</p></div><div className="customer-account-actions"><button className="account-cart-link" type="button" onClick={onOpenCart}>Cart <span>{cartCount}</span></button><button className="account-text-action" type="button" onClick={signOut}>Sign out</button></div></header>
+    <header className="account-heading"><div><p className="eyebrow">Customer account</p><h1>Welcome, {fullName}</h1><p>{session.user.email}</p></div><div className="customer-account-actions"><button className="account-cart-link" type="button" onClick={onOpenCart}>Cart <span>{cartCount}</span></button><button className="account-signout-button" type="button" onClick={signOut}><LogoutIcon sx={{ fontSize: 17 }} aria-hidden="true" /> Sign out</button></div></header>
     <div className="account-layout">
       <nav className="account-sidebar" aria-label="Account sections">
         {accountSections.map(({ id, label, icon: SectionIcon }) => (
-          <button key={id} className={activeSection === id ? "active" : ""} onClick={() => {
+          <button key={id} className={`${activeSection === id ? "active" : ""}${id === "logout" ? " account-logout-button" : ""}`} onClick={() => {
             if (id === "logout") signOut();
             else if (id === "cart") onOpenCart();
             else onSelectSection(id);
