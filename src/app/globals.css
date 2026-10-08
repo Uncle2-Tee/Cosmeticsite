@@ -212,13 +212,13 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
 .page-home .hero-main-image { position:absolute; top:7%; right:5%; width:72%; height:82%; overflow:hidden; border:8px solid rgba(255,255,255,.92); border-radius:20px; background-position:center; background-size:cover; box-shadow:0 22px 50px rgba(52,46,37,.18); animation:heroMainDrift 7s ease-in-out infinite; }
 .page-home .hero-support-image { position:absolute; z-index:2; top:0; left:1%; width:39%; height:43%; border:7px solid #fff; border-radius:17px; background-position:center; background-size:cover; box-shadow:0 16px 34px rgba(52,46,37,.17); animation:heroSupportDrift 6s .4s ease-in-out infinite; }
 .page-home .floating-badge { z-index:4; top:7%; right:-1%; left:auto; padding:10px 15px; border:1px solid rgba(220,112,79,.18); background:#fffdf9; color:#29342d; box-shadow:0 10px 25px rgba(48,43,34,.12); font-size:10px; letter-spacing:.04em; text-transform:none; animation:heroBadgeAppear .55s .2s ease-out both; }
-.page-home .showcase-card { z-index:3; top:auto; right:0; bottom:5%; left:3%; width:min(340px,76%); padding:20px 21px 18px; border:1px solid rgba(255,255,255,.78); border-radius:12px; background:rgba(255,253,249,.96); box-shadow:0 16px 40px rgba(52,46,37,.16); transform:none; animation:heroCardAppear .65s .35s ease-out both,heroCardDrift 5.5s 1s ease-in-out infinite; }
-.page-home .showcase-card>p:first-child { margin:0 0 7px; color:#6b766d; font-size:9px; letter-spacing:.12em; text-transform:uppercase; }
-.page-home .showcase-card h2 { margin:0 0 8px; font:400 23px/1.1 Georgia,serif; letter-spacing:0; }
-.page-home .showcase-card .showcase-description { color:#59645e; font-size:11px; line-height:1.5; }
-.page-home .hero-feature-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; }
-.page-home .hero-feature-actions strong { font:400 18px Georgia,serif; }
-.page-home .hero-feature-actions button { width:34px; height:34px; display:grid; place-items:center; border:0; border-radius:50%; background:#26372d; color:#fff; }
+.page-home .showcase-card { z-index:3; top:auto; right:0; bottom:5%; left:3%; width:min(265px,65%); padding:13px 14px 12px; border:1px solid rgba(255,255,255,.82); border-radius:14px; background:rgba(255,253,249,.97); box-shadow:0 14px 34px rgba(52,46,37,.14); transform:none; animation:heroCardAppear .65s .35s ease-out both,heroCardDrift 5.5s 1s ease-in-out infinite; }
+.page-home .showcase-card>p:first-child { margin:0 0 6px; color:#6b766d; font-size:8px; letter-spacing:.12em; text-transform:uppercase; }
+.page-home .showcase-card h2 { margin:0 0 5px; font:400 18px/1.1 Georgia,serif; letter-spacing:0; }
+.page-home .showcase-card .showcase-description { display:-webkit-box; overflow:hidden; color:#59645e; font-size:9px; line-height:1.35; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+.page-home .hero-feature-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:7px; }
+.page-home .hero-feature-actions strong { font:400 15px Georgia,serif; }
+.page-home .hero-feature-actions button { width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:50%; background:#26372d; color:#fff; }
 
 @keyframes heroMainDrift { 0%,100% { transform:translateY(-7px) scale(1); } 50% { transform:translateY(8px) scale(1.025); } }
 @keyframes heroSupportDrift { 0%,100% { transform:translateY(5px) rotate(-2deg); } 50% { transform:translateY(-8px) rotate(1deg); } }
@@ -239,10 +239,11 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
   .page-home .hero-main-image { top:6%; right:3%; width:76%; height:78%; border-width:6px; border-radius:16px; }
   .page-home .hero-support-image { top:0; left:0; width:39%; height:39%; border-width:5px; border-radius:13px; }
   .page-home .floating-badge { top:4%; right:0; padding:8px 11px; font-size:9px; }
-  .page-home .showcase-card { right:0; bottom:1%; left:6%; width:min(320px,88%); padding:15px 16px 14px; border-radius:10px; animation:heroCardAppear .55s .25s ease-out both; }
-  .page-home .showcase-card h2 { font-size:20px; }
-  .page-home .showcase-card .showcase-description { font-size:10px; }
-  .page-home .hero-feature-actions { margin-top:10px; }
+  .page-home .showcase-card { right:0; bottom:1%; left:6%; width:min(245px,78%); padding:10px 12px 9px; border-radius:12px; animation:heroCardAppear .55s .25s ease-out both; }
+  .page-home .showcase-card h2 { font-size:16px; }
+  .page-home .showcase-card .showcase-description { font-size:8px; line-height:1.3; }
+  .page-home .hero-feature-actions { margin-top:6px; }
+  .page-home .hero-feature-actions button { width:26px; height:26px; }
 }
 
 @media (prefers-reduced-motion:reduce) {
