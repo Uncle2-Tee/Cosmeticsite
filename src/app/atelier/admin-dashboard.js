@@ -1,11 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
 
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
 const emptyForm = { name: "", category: "Serums", price: "", size: "", image: "", description: "", cardDescription: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
+
+function timeBasedGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning.";
+  if (hour < 17) return "Good afternoon.";
+  return "Good evening.";
+}
+
+function subscribeToTimeGreeting(onChange) {
+  const interval = window.setInterval(onChange, 60_000);
+  return () => window.clearInterval(interval);
+}
+
+function getServerGreeting() {
+  return "Welcome back.";
+}
 
 async function readApiResponse(response) {
   const body = await response.json().catch(() => ({}));
@@ -14,6 +30,7 @@ async function readApiResponse(response) {
 }
 
 export default function AdminDashboard() {
+  const greeting = useSyncExternalStore(subscribeToTimeGreeting, timeBasedGreeting, getServerGreeting);
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [priceDrafts, setPriceDrafts] = useState({});
@@ -116,7 +133,7 @@ export default function AdminDashboard() {
 
   return <main className="dashboard-shell">
     <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div><span className="secure-status">● Secure admin session</span><button onClick={signOut}>Sign out</button></div></header>
-    <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>Good morning.</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
+    <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Add the Supabase environment values, then run the migration described in the README.</p>}
     <section className="dashboard-grid">
       <form className="catalog-form" onSubmit={addProduct}>
