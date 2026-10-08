@@ -536,7 +536,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
 .customer-auth-monogram { display:grid; width:36px; height:36px; place-items:center; border-radius:50%; background:#fff0e1; color:#e9792f; font:400 20px/1 Georgia,"Times New Roman",serif; }
 .customer-auth-brand-name { color:#382d28; font:400 20px/1 Georgia,"Times New Roman",serif; letter-spacing:-.025em; }
 .customer-auth-brand-name em { color:#e9792f; font-size:15px; font-style:normal; }
-.customer-auth-overline { margin:0 0 9px; color:#a76a43; font-size:9px; font-weight:700; letter-spacing:.16em; text-align:center; }
 .customer-auth-card h1 { margin:0; font:400 clamp(32px,5vw,42px)/1.05 Georgia,serif; letter-spacing:0; }
 .customer-auth-card h1,.customer-auth-intro { text-align:center; }
 .customer-auth-card h1 { color:#332a26; font-size:clamp(29px,5vw,36px); }
@@ -546,7 +545,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
 .customer-auth-card form input { width:100%; min-height:47px; padding:10px 13px; border:1px solid #e2dfdc; border-radius:11px; background:#f6f6f5; color:var(--ink); font-size:14px; letter-spacing:0; text-transform:none; transition:border-color .18s ease,box-shadow .18s ease,background .18s ease; }
 .customer-auth-card form input::placeholder { color:#9a9997; opacity:1; }
 .customer-auth-card form input:focus-visible { outline:0; border-color:#f18a46; background:#fff; box-shadow:0 0 0 3px rgba(241,138,70,.16); }
-.customer-auth-optional { color:#99918b; font-size:10px; font-weight:400; }
 .customer-password-field { position:relative; display:block; }
 .customer-password-field input { padding-right:62px !important; }
 .customer-password-toggle { position:absolute; top:50%; right:8px; display:grid; width:36px; height:36px; place-items:center; transform:translateY(-50%); border:0; border-radius:50%; background:transparent; color:#81766e; cursor:pointer; }
@@ -555,8 +553,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
 .customer-auth-switch { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:5px; margin:19px 0 0; color:#716962; font-size:12px; }
 .customer-auth-switch .account-text-action { font-size:12px; }
 .customer-auth-switch .account-text-action { color:#e9792f; }
-.customer-auth-security { display:flex; align-items:center; justify-content:center; gap:7px; margin:18px 0 0; padding-top:14px; border-top:1px solid #efebe7; color:#817a74; font-size:10px; line-height:1.5; }
-.customer-auth-security span { color:#e9792f; font-size:14px; }
 .customer-auth-card form .primary-button { min-height:49px; margin-top:3px; border:0; border-radius:11px; background:linear-gradient(100deg,#f89242,#f47b2b); box-shadow:0 7px 15px rgba(233,121,47,.2); color:#fff; font-size:14px; font-weight:600; letter-spacing:.01em; }
 .customer-auth-card form .primary-button:hover:not(:disabled) { background:linear-gradient(100deg,#ed7f30,#e96d20); box-shadow:0 9px 18px rgba(233,121,47,.26); }
 .customer-auth-card form .primary-button:disabled { opacity:.58; cursor:not-allowed; }

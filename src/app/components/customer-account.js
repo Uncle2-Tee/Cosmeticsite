@@ -45,7 +45,7 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
   const [session, setSession] = useState(null);
   const [authMode, setAuthMode] = useState("signin");
   const [requireSignIn, setRequireSignIn] = useState(false);
-  const [form, setForm] = useState({ fullName: "", email: "", phone: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({ fullName: "", email: "", password: "", confirmPassword: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [orders, setOrders] = useState(null);
@@ -109,7 +109,7 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
         const { data, error } = await supabase.auth.signUp({
           email: form.email.trim().toLowerCase(),
           password: form.password,
-          options: { data: { full_name: form.fullName.trim(), phone: form.phone.trim() } },
+          options: { data: { full_name: form.fullName.trim() } },
         });
         if (error) throw error;
         if (data.session) {
@@ -117,7 +117,7 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
           if (signOutError) throw signOutError;
         }
         setAuthMode("signin");
-        setForm((current) => ({ ...current, fullName: "", phone: "", password: "", confirmPassword: "" }));
+        setForm((current) => ({ ...current, fullName: "", password: "", confirmPassword: "" }));
         setMessage(data.session
           ? "Your account has been created. Please sign in to continue."
           : "Your sign-up was received. Check your inbox to verify your address, then sign in.");
@@ -152,14 +152,12 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
           <span className="customer-auth-monogram">D</span>
           <span className="customer-auth-brand-name">Doresther <em>Trading</em></span>
         </div>
-        <p className="customer-auth-overline">YOUR CUSTOMER ACCOUNT</p>
         <h1>{isSigningUp ? "Create Account" : "Welcome Back"}</h1>
         <p className="customer-auth-intro">{isSigningUp ? "Join us for thoughtful essentials and easy order tracking." : "Log in to continue to your Doresther Trading account."}</p>
         {!supabase && <p className="customer-account-notice" role="status">Customer accounts are temporarily unavailable. Please try again later.</p>}
         <form onSubmit={submitAuth}>
           {isSigningUp && <label htmlFor="customer-full-name">Full name<input id="customer-full-name" name="name" type="text" autoComplete="name" placeholder="e.g. Ama Mensah" required maxLength={120} value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>}
           <label htmlFor="customer-email">Email<input id="customer-email" name="email" type="email" autoComplete="email" placeholder="e.g. ama@example.com" required maxLength={254} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-          {isSigningUp && <label htmlFor="customer-phone">Phone number <span className="customer-auth-optional">(optional)</span><input id="customer-phone" name="phone" type="tel" autoComplete="tel" placeholder="e.g. 024 000 0000" maxLength={32} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>}
           <label htmlFor="customer-password">Password
             <span className="customer-password-field">
               <input id="customer-password" name="password" type={showPassword ? "text" : "password"} autoComplete={isSigningUp ? "new-password" : "current-password"} placeholder="Password" minLength={8} required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
@@ -183,7 +181,6 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
             {isSigningUp ? "Log In" : "Create Account"}
           </button>
         </p>
-        <p className="customer-auth-security"><span aria-hidden="true">▣</span> Your password is securely protected.</p>
       </div>
     </section>;
   }
