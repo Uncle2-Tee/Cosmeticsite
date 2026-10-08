@@ -20,7 +20,7 @@ function MenuLink({ icon: Icon, children }) {
   return <span className="mobile-menu-link"><Icon sx={{ fontSize: 20 }} aria-hidden="true" focusable="false" /><span>{children}</span></span>;
 }
 
-export default function MobileMenu({ isOpen, onClose, onNavigate, onOpenCart, cartCount }) {
+export default function MobileMenu({ isOpen, onClose, onNavigate, cartCount }) {
   const closeButtonRef = useRef(null);
 
   useEffect(() => {
@@ -39,13 +39,11 @@ export default function MobileMenu({ isOpen, onClose, onNavigate, onOpenCart, ca
   if (!isOpen) return null;
 
   const navigate = (view) => { onClose(); onNavigate(view); };
-  const openCart = () => { onClose(); onOpenCart(); };
 
   return <>
     <button className="mobile-menu-backdrop" onClick={onClose} aria-label="Close navigation" />
     <aside className="mobile-menu" id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Mobile navigation">
-      <div className="mobile-menu-top"><span className="mobile-menu-label">Navigation</span><button ref={closeButtonRef} onClick={onClose} aria-label="Close navigation"><CloseIcon /></button></div>
-      <div className="mobile-menu-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div>
+      <div className="mobile-menu-top"><div className="mobile-menu-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><button ref={closeButtonRef} onClick={onClose} aria-label="Close navigation"><CloseIcon /></button></div>
       <nav aria-label="Mobile navigation">
         <button onClick={() => navigate("home")}><MenuLink icon={HomeOutlinedIcon}>Home</MenuLink><span>00</span></button>
         <button onClick={() => navigate("shop")}><MenuLink icon={StorefrontOutlinedIcon}>Shop</MenuLink><span>01</span></button>
@@ -54,8 +52,7 @@ export default function MobileMenu({ isOpen, onClose, onNavigate, onOpenCart, ca
       </nav>
       <div className="mobile-menu-bottom">
         <p>Intentional essentials, made for your everyday.</p>
-        <button className="mobile-bag-link" onClick={openCart}><span><BagIcon /> Your cart</span><b>{cartCount}</b></button>
-        <small>Complimentary shipping on orders over GH₵60</small>
+        <div className="mobile-bag-link"><span><BagIcon /> Your cart</span><b>{cartCount}</b></div>
       </div>
     </aside>
   </>;
