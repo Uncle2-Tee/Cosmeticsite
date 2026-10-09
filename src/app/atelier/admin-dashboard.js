@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import NotificationsIcon from "@mui/icons-material/NotificationsNone";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
 
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
 const emptyForm = { name: "", category: "Serums", price: "", size: "", image: "", description: "", cardDescription: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
+const orderStatuses = ["awaiting_payment", "payment_review", "processing", "shipped", "delivered", "cancelled"];
 
 function timeBasedGreeting() {
   const hour = new Date().getHours();
@@ -38,6 +41,15 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [databaseReady, setDatabaseReady] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [ordersError, setOrdersError] = useState("");
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [orderMessage, setOrderMessage] = useState("");
+  const [newOrders, setNewOrders] = useState([]);
+  const [notificationPermission, setNotificationPermission] = useState(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+  const [refreshOrdersKey, setRefreshOrdersKey] = useState(0);
+  const knownOrderIds = useRef(new Set());
+  const initialOrdersLoaded = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -53,6 +65,57 @@ export default function AdminDashboard() {
       .catch((error) => { if (!cancelled) setMessage(error.message); });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let requestInFlight = false;
+    async function loadOrders() {
+      if (requestInFlight) return;
+      requestInFlight = true;
+      setOrdersLoading((loading) => loading || !initialOrdersLoaded.current);
+      try {
+        const { orders: savedOrders } = await readApiResponse(await fetch("/api/admin/orders", { cache: "no-store" }));
+        if (cancelled) return;
+        const existingIds = knownOrderIds.current;
+        if (initialOrdersLoaded.current) {
+          const arrived = savedOrders.filter((order) => !existingIds.has(order.id));
+          if (arrived.length) {
+            setNewOrders((current) => [...arrived.filter((order) => !current.some((item) => item.id === order.id)), ...current]);
+            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+              new Notification(arrived.length === 1 ? "New customer order" : `${arrived.length} new customer orders`, {
+                body: arrived.slice(0, 3).map((order) => `${order.customer_name} · ${money.format(Number(order.total))}`).join("\n"),
+                tag: "doresther-new-orders",
+              });
+            }
+          }
+        }
+        knownOrderIds.current = new Set(savedOrders.map((order) => order.id));
+        initialOrdersLoaded.current = true;
+        setOrders(savedOrders);
+        setOrdersError("");
+      } catch (error) {
+        if (!cancelled) setOrdersError(error.message || "Could not load orders.");
+      } finally {
+        requestInFlight = false;
+        if (!cancelled) setOrdersLoading(false);
+      }
+    }
+    void loadOrders();
+    const interval = window.setInterval(loadOrders, 30_000);
+    const onFocus = () => { void loadOrders(); };
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [refreshOrdersKey]);
+
+  useEffect(() => {
+    if (!orderMessage) return undefined;
+    const timer = window.setTimeout(() => setOrderMessage(""), 4000);
+    return () => window.clearTimeout(timer);
+  }, [orderMessage]);
 
   useEffect(() => {
     if (!message || !databaseReady) return;
@@ -125,6 +188,43 @@ export default function AdminDashboard() {
     } catch (error) { setMessage(error.message); }
   }
 
+  async function enableOrderNotifications() {
+    if (typeof Notification === "undefined") {
+      setOrderMessage("Browser notifications are not supported here. New orders will still appear in this dashboard.");
+      setNotificationPermission("unsupported");
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      setOrderMessage(permission === "granted"
+        ? "Browser notifications are enabled for new orders."
+        : permission === "denied"
+          ? "Notifications are blocked in your browser settings. New orders will still appear here."
+          : "Notification permission was not granted. New orders will still appear here.");
+    } catch (error) {
+      console.error("Could not request browser notification permission:", error);
+      setOrderMessage("Could not enable browser notifications. New orders will still appear here.");
+    }
+  }
+
+  async function updateOrderStatus(order, status) {
+    const previousStatus = order.status;
+    setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status } : item));
+    try {
+      const { order: savedOrder } = await readApiResponse(await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id, status }),
+      }));
+      setOrders((current) => current.map((item) => item.id === savedOrder.id ? savedOrder : item));
+      setOrderMessage(`Order status updated to ${status.replaceAll("_", " ")}.`);
+    } catch (error) {
+      setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status: previousStatus } : item));
+      setOrderMessage(error.message || "Could not update order status.");
+    }
+  }
+
   async function signOut() {
     await fetch("/api/admin/session", { method: "DELETE" });
     router.replace("/atelier");
@@ -135,6 +235,30 @@ export default function AdminDashboard() {
     <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div><span className="secure-status">● Secure admin session</span><button onClick={signOut}>Sign out</button></div></header>
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Add the Supabase environment values, then run the migration described in the README.</p>}
+    <section className="orders-panel" aria-labelledby="orders-heading">
+      <div className="orders-panel-heading">
+        <div><p className="atelier-kicker">Customer activity</p><h2 id="orders-heading">Orders <span className="orders-count">{orders.length}</span></h2><p>New orders are checked every 30 seconds while the dashboard is open.</p></div>
+        <div className="orders-toolbar">
+          <button type="button" className="admin-refresh-button" onClick={() => setRefreshOrdersKey((key) => key + 1)} disabled={ordersLoading} aria-label="Refresh orders"><RefreshIcon fontSize="small" /> Refresh</button>
+          {notificationPermission === "granted"
+            ? <span className="notification-enabled"><NotificationsIcon fontSize="small" /> Alerts enabled</span>
+            : <button type="button" className="admin-notification-button" onClick={enableOrderNotifications} disabled={notificationPermission === "unsupported"}><NotificationsIcon fontSize="small" /> Enable alerts</button>}
+        </div>
+      </div>
+      {newOrders.length > 0 && <div className="new-orders-alert" role="status"><div><strong>{newOrders.length === 1 ? "New order received" : `${newOrders.length} new orders received`}</strong><span>{newOrders[0].customer_name} · {money.format(Number(newOrders[0].total))}</span></div><button type="button" onClick={() => setNewOrders([])}>Mark as seen</button></div>}
+      {orderMessage && <p className="orders-message" role="status">{orderMessage}</p>}
+      {ordersError && <p className="database-warning orders-error" role="alert">{ordersError}</p>}
+      {ordersLoading && orders.length === 0 && <p className="orders-empty">Loading orders…</p>}
+      {!ordersLoading && !ordersError && orders.length === 0 && <p className="orders-empty">No orders yet. New customer orders will appear here automatically.</p>}
+      {orders.length > 0 && <div className="admin-orders-list">{orders.map((order) => (
+        <article className="admin-order-card" key={order.id}>
+          <div className="admin-order-top"><div><p className="admin-order-number">Order #{order.id.slice(0, 8).toUpperCase()}</p><time dateTime={order.created_at}>{new Intl.DateTimeFormat("en-GH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.created_at))}</time></div><strong className={`admin-order-status status-${order.status}`}>{order.status.replaceAll("_", " ")}</strong></div>
+          <div className="admin-order-customer"><strong>{order.customer_name}</strong><a href={`mailto:${order.customer_email}`}>{order.customer_email}</a><a href={`tel:${order.phone}`}>{order.phone}</a></div>
+          <ul className="admin-order-items">{(Array.isArray(order.items) ? order.items : []).map((item, index) => <li key={`${order.id}-${item.product_id || item.name}-${index}`}><span>{item.name} × {item.quantity}</span><strong>{money.format(Number(item.line_total ?? Number(item.price) * Number(item.quantity)))}</strong></li>)}</ul>
+          <div className="admin-order-bottom"><div><span>Deliver to</span><p>{order.shipping_address}</p><small>Payment: Mobile Money · {money.format(Number(order.total))}</small></div><label>Status<select aria-label={`Update status for order ${order.id.slice(0, 8)}`} value={order.status} onChange={(event) => updateOrderStatus(order, event.target.value)}>{orderStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></label></div>
+        </article>
+      ))}</div>}
+    </section>
     <section className="dashboard-grid">
       <form className="catalog-form" onSubmit={addProduct}>
         <div className="panel-heading"><div><p className="atelier-kicker">New listing</p><h2>Add a product</h2></div></div>

@@ -31,7 +31,61 @@
 .catalog-price-editor button { padding:8px 9px; border:1px solid var(--atelier-ink); background:var(--atelier-ink); color:#fff; font-size:8px; letter-spacing:.04em; text-transform:uppercase; }
 .catalog-price-editor button:hover { background:transparent; color:var(--atelier-ink); }
 .catalog-remove-button { margin-left:4px; color:#944a3b; border:0; background:transparent; font-size:9px; letter-spacing:.07em; text-decoration:underline; text-underline-offset:3px; text-transform:uppercase; }
+.orders-panel { max-width:1160px; margin:0 auto 24px; padding:30px 32px; border:1px solid var(--atelier-line); background:var(--atelier-paper); }
+.orders-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; padding-bottom:21px; border-bottom:1px solid var(--atelier-line); }
+.orders-panel-heading .atelier-kicker { margin:0 0 8px; }
+.orders-panel-heading h2 { margin:0; font:400 31px/1 Georgia,serif; letter-spacing:-.04em; }
+.orders-panel-heading>div:first-child>p:last-child { margin:9px 0 0; color:var(--atelier-muted); font-size:12px; }
+.orders-count { display:inline-grid; min-width:25px; height:25px; margin-left:5px; padding:0 6px; place-items:center; border-radius:999px; background:#eee8eb; color:#5a3b4f; font:600 11px Arial,Helvetica,sans-serif; vertical-align:middle; }
+.orders-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.orders-toolbar button,.notification-enabled { min-height:38px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:0 12px; border:1px solid var(--atelier-line); background:#fff; color:var(--atelier-ink); font-size:10px; font-weight:600; }
+.orders-toolbar button { cursor:pointer; }
+.orders-toolbar button:hover:not(:disabled) { background:#f3edf0; }
+.orders-toolbar button:disabled { opacity:.6; cursor:wait; }
+.notification-enabled { border-color:#c7ddcb; background:#f2f8f2; color:#426c49; }
+.new-orders-alert { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:17px 0; padding:13px 15px; border:1px solid #e6c78f; background:#fff8e9; color:#674b23; }
+.new-orders-alert>div { display:grid; gap:4px; font-size:12px; }
+.new-orders-alert>div span { color:#78694f; font-size:11px; }
+.new-orders-alert button { flex:0 0 auto; padding:8px 11px; border:1px solid #dec58f; background:#fffdf7; color:#624a25; font-size:9px; font-weight:600; cursor:pointer; }
+.orders-message { margin:12px 0; color:#526056; font-size:11px; }
+.orders-error { margin:14px 0 0; }
+.orders-empty { margin:0; padding:22px 0 3px; color:var(--atelier-muted); font-size:12px; }
+.admin-orders-list { display:grid; gap:12px; max-height:680px; overflow:auto; padding:16px 3px 2px 0; }
+.admin-order-card { padding:18px; border:1px solid var(--atelier-line); background:#fff; }
+.admin-order-top { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding-bottom:13px; border-bottom:1px solid var(--atelier-line); }
+.admin-order-top>div { display:grid; gap:5px; }
+.admin-order-number { margin:0; font:400 17px Georgia,serif; color:var(--atelier-ink); }
+.admin-order-top time { color:var(--atelier-muted); font-size:10px; }
+.admin-order-status { padding:6px 9px; border-radius:999px; background:#fbf0da; color:#795824; font-size:9px; letter-spacing:.04em; text-transform:capitalize; }
+.admin-order-status.status-processing,.admin-order-status.status-payment_review { background:#eaf0fa; color:#405c89; }
+.admin-order-status.status-shipped { background:#eee9f4; color:#634d7d; }
+.admin-order-status.status-delivered { background:#e8f2e8; color:#426c49; }
+.admin-order-status.status-cancelled { background:#faeceb; color:#914944; }
+.admin-order-customer { display:flex; flex-wrap:wrap; align-items:center; gap:7px 17px; padding:13px 0; color:var(--atelier-muted); font-size:11px; }
+.admin-order-customer strong { color:var(--atelier-ink); font-size:12px; }
+.admin-order-customer a { color:inherit; text-decoration-color:#d7cbd1; text-underline-offset:3px; }
+.admin-order-items { display:grid; gap:7px; margin:0; padding:12px 0; border-top:1px solid var(--atelier-line); border-bottom:1px solid var(--atelier-line); list-style:none; }
+.admin-order-items li { display:flex; justify-content:space-between; gap:12px; color:#55505a; font-size:11px; }
+.admin-order-items strong { color:var(--atelier-ink); font-weight:600; white-space:nowrap; }
+.admin-order-bottom { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding-top:13px; }
+.admin-order-bottom>div { min-width:0; }
+.admin-order-bottom>div>span,.admin-order-bottom label { color:var(--atelier-muted); font-size:9px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; }
+.admin-order-bottom>div p { margin:5px 0; color:#46404a; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+.admin-order-bottom small { color:var(--atelier-muted); font-size:10px; }
+.admin-order-bottom label { flex:0 0 165px; }
+.admin-order-bottom select { display:block; width:100%; min-height:37px; margin-top:6px; padding:7px 9px; border:1px solid var(--atelier-line); border-radius:8px; background:#fff; color:var(--atelier-ink); font-size:11px; letter-spacing:0; text-transform:capitalize; }
+.admin-order-bottom select:focus-visible { outline:2px solid var(--atelier-rose); outline-offset:2px; }
 @media (max-width:780px) {
+  .orders-panel { margin:0 13px 15px; padding:21px 18px; }
+  .orders-panel-heading { align-items:flex-start; flex-direction:column; gap:14px; }
+  .orders-panel-heading h2 { font-size:28px; }
+  .orders-toolbar { width:100%; }
+  .orders-toolbar button,.notification-enabled { min-height:36px; }
+  .admin-order-card { padding:14px; }
+  .admin-order-bottom { align-items:stretch; flex-direction:column; gap:13px; }
+  .admin-order-bottom label { flex-basis:auto; }
+  .admin-order-customer { gap:7px 12px; }
+  .new-orders-alert { align-items:flex-start; flex-direction:column; }
   .catalog-item { grid-template-columns:48px minmax(0,1fr) auto; }
   .catalog-price-editor { grid-column:2 / -1; min-width:0; }
   .catalog-price-editor>div { max-width:260px; }

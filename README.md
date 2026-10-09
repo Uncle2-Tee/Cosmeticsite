@@ -39,7 +39,7 @@ On Vercel or another serverless host, add these variables in the project’s pro
 
 Products and prices are loaded from Supabase and edited through admin-only server routes. Customer accounts use Supabase email/password authentication. Orders are created for the signed-in customer and stored with server-calculated prices and totals; they remain `awaiting_payment` until the Mobile Money transfer is manually verified. No card details are collected or processed. The cart and wishlist remain in the current browser and are not synced between devices yet.
 
-The API validates customer access tokens and only returns orders belonging to that customer. Database tables have row-level security enabled; privileged database access stays in server routes using `SUPABASE_SERVICE_ROLE_KEY`. Do not add public RLS policies for the service-only tables.
+The API validates customer access tokens and only returns orders belonging to that customer. The admin dashboard has a separate admin-session-protected orders view, polls for new orders every 30 seconds while open, and can show browser notifications after the admin enables them. Browser notifications require the dashboard to remain open and permission to be granted. Database tables have row-level security enabled; privileged database access stays in server routes using `SUPABASE_SERVICE_ROLE_KEY`. Do not add public RLS policies for the service-only tables.
 
 Before accepting real payments, connect a payment provider and implement verified payment callbacks and order status updates.
 
