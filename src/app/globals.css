@@ -349,6 +349,15 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
 .account-empty .eyebrow { margin:0 0 10px; }
 .account-empty>p:not(.eyebrow) { max-width:480px; margin:12px 0 17px; color:#67716a; font-size:13px; line-height:1.6; }
 .account-empty a { color:inherit; }
+.account-help-actions { display:flex; width:max-content; max-width:100%; flex-wrap:wrap; gap:10px; margin-top:8px; }
+.account-help-actions>a { min-height:46px; display:flex; align-items:center; justify-content:center; gap:9px; padding:0 15px; border:1px solid transparent; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; transition:background .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease; }
+.account-help-actions>a:hover { transform:translateY(-1px); }
+.account-help-actions>a:focus-visible { outline:3px solid rgba(37,211,102,.3); outline-offset:3px; }
+.account-help-call { background:#f28a37; color:#fff !important; box-shadow:0 5px 14px rgba(242,138,55,.18); }
+.account-help-call:hover { background:#e97a26; }
+.account-help-whatsapp { border-color:#35c878 !important; background:#fff !important; color:#20a85a !important; }
+.account-help-whatsapp:hover { border-color:#20a85a !important; background:#f2fff7 !important; box-shadow:0 5px 14px rgba(32,168,90,.12); }
+.account-help-actions svg { width:19px; height:19px; }
 .wishlist-heading h2 span { color:#a95747; font-family:Arial,sans-serif; font-size:.72em; }
 .wishlist-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
 .wishlist-card { min-width:0; overflow:hidden; border:1px solid var(--line); background:#fffefa; }
@@ -409,6 +418,8 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; } a { co
   .account-order-summary>div { gap:9px; }
   .account-order-summary strong { font-size:20px; }
   .account-empty { min-height:180px; padding:22px 18px; }
+  .account-help-actions { width:max-content; gap:9px; }
+  .account-help-actions>a { min-height:44px; gap:7px; padding:0 13px; font-size:12px; }
   .wishlist-grid { gap:12px; }
   .wishlist-card-info { padding:12px; }
   .wishlist-card-info h3 { font-size:17px; }

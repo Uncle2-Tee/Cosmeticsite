@@ -14,6 +14,8 @@ import NotificationsIcon from "@mui/icons-material/NotificationsNone";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
 import HelpIcon from "@mui/icons-material/HelpOutlineOutlined";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
+import PhoneIcon from "@mui/icons-material/CallOutlined";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 
 const accountSections = [
@@ -244,10 +246,10 @@ export default function CustomerAccount({ onSessionChange, onSignUpStart, onSign
         {activeSection === "profile" && <div className="account-empty"><p className="eyebrow">Your details</p><h2>My Profile</h2><p><strong>Name</strong><br />{fullName}</p><p><strong>Email</strong><br />{session.user.email}</p><p>Your account is securely managed through Supabase.</p></div>}
         {activeSection === "addresses" && <div className="account-empty"><p className="eyebrow">Delivery details</p><h2>Delivery Addresses</h2><p>No saved delivery addresses yet. Add your delivery address during checkout and it will be included with your order.</p></div>}
         {activeSection === "payments" && <div className="account-empty"><p className="eyebrow">Secure payments</p><h2>Payment Methods</h2><p>Payment is currently handled through Mobile Money at checkout. Payment card details are not stored in your account.</p></div>}
-        {activeSection === "returns" && <div className="account-empty"><p className="eyebrow">Order support</p><h2>Returns &amp; Refunds</h2><p>For help with a return or refund, contact our support team with your order number.</p><a className="account-text-action" href="https://wa.me/233240958153" target="_blank" rel="noreferrer">Contact support</a></div>}
+        {activeSection === "returns" && <div className="account-empty account-help-card"><p className="eyebrow">Order support</p><h2>Returns &amp; Refunds</h2><p>For help with a return or refund, contact our support team with your order number. Choose how you’d like to get in touch.</p><div className="account-help-actions"><a className="account-help-call" href="tel:+233535082115"><PhoneIcon aria-hidden="true" /> Call us</a><a className="account-help-whatsapp" href="https://wa.me/233240958153" target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a></div></div>}
         {activeSection === "notifications" && <div className="account-empty"><p className="eyebrow">Stay in the loop</p><h2>Notifications</h2><p>You’re all caught up. Account notifications will appear here when available.</p></div>}
         {activeSection === "settings" && <div className="account-empty"><p className="eyebrow">Preferences</p><h2>Settings</h2><p>Your account settings will be available here. You can sign out securely from the account header or menu.</p></div>}
-        {activeSection === "support" && <div className="account-empty"><p className="eyebrow">We’re here to help</p><h2>Help &amp; Support</h2><p>Call us at <a href="tel:+233535082115">0535082115</a> or message us on WhatsApp.</p><a className="account-text-action" href="https://wa.me/233240958153" target="_blank" rel="noreferrer">Message on WhatsApp</a></div>}
+        {activeSection === "support" && <div className="account-empty account-help-card"><p className="eyebrow">We’re here to help</p><h2>Help &amp; Support</h2><p>Our team is ready to help with your orders and any questions. Choose how you’d like to get in touch.</p><div className="account-help-actions"><a className="account-help-call" href="tel:+233535082115"><PhoneIcon aria-hidden="true" /> Call us</a><a className="account-help-whatsapp" href="https://wa.me/233240958153" target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a></div></div>}
         {message && <p className="customer-account-notice" role="status">{message}</p>}
       </section>
     </div>
