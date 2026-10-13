@@ -32,7 +32,7 @@ async function readApiResponse(response) {
   return body;
 }
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ username }) {
   const greeting = useSyncExternalStore(subscribeToTimeGreeting, timeBasedGreeting, getServerGreeting);
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
   }
 
   return <main className="dashboard-shell">
-    <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div><span className="secure-status">● Secure admin session</span><button onClick={signOut}>Sign out</button></div></header>
+    <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div><span className="secure-status">● Signed in as {username}</span><button onClick={signOut}>Sign out</button></div></header>
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Add the Supabase environment values, then run the migration described in the README.</p>}
     <section className="orders-panel" aria-labelledby="orders-heading">

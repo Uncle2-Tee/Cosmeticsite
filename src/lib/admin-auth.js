@@ -19,32 +19,58 @@ function signaturesMatch(expected, received) {
 }
 
 export function isAdminAuthConfigured() {
-  return Boolean(process.env.ADMIN_PASSWORD && sessionSecret());
+  return Boolean(process.env.ADMIN_USERNAME?.trim() && process.env.ADMIN_PASSWORD && sessionSecret());
 }
 
-export function passwordMatches(password) {
+export function credentialsMatch(username, password) {
+  const configuredUsername = process.env.ADMIN_USERNAME?.trim().toLowerCase();
   const configuredPassword = process.env.ADMIN_PASSWORD;
-  return Boolean(configuredPassword && signaturesMatch(configuredPassword, password));
+  return Boolean(
+    configuredUsername
+    && typeof username === "string"
+    && signaturesMatch(configuredUsername, username.trim().toLowerCase())
+    && configuredPassword
+    && typeof password === "string"
+    && signaturesMatch(configuredPassword, password),
+  );
 }
 
 export function createAdminSession() {
   const secret = sessionSecret();
-  if (!secret) return null;
+  const username = process.env.ADMIN_USERNAME?.trim();
+  if (!secret || !username) return null;
   const expiresAt = Date.now() + SESSION_MAX_AGE * 1000;
-  const payload = `admin.${expiresAt}`;
+  const payload = Buffer.from(JSON.stringify({ role: "admin", username, expiresAt })).toString("base64url");
   const signature = createHmac("sha256", secret).update(payload).digest("base64url");
-  return { value: `${payload}.${signature}`, expiresAt };
+  return { value: `${payload}.${signature}`, expiresAt, username };
+}
+
+function parseAdminSession(session = "") {
+  const secret = sessionSecret();
+  const [payload, signature, extra] = session.split(".");
+  if (!secret || extra || !payload || !signature) return null;
+  const expectedSignature = createHmac("sha256", secret).update(payload).digest("base64url");
+  if (!signaturesMatch(expectedSignature, signature)) return null;
+  try {
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (claims.role !== "admin"
+      || typeof claims.username !== "string"
+      || !claims.username
+      || !Number.isFinite(claims.expiresAt)
+      || claims.expiresAt <= Date.now()
+      || claims.username !== process.env.ADMIN_USERNAME?.trim()) return null;
+    return claims;
+  } catch {
+    return null;
+  }
 }
 
 export function hasValidAdminSession(session = "") {
-  const secret = sessionSecret();
-  if (!secret) return false;
-  const [role, expiration, signature, extra] = session.split(".");
-  const expiresAt = Number(expiration);
-  if (extra || role !== "admin" || !Number.isFinite(expiresAt) || expiresAt <= Date.now() || !signature) return false;
-  const payload = `${role}.${expiration}`;
-  const expectedSignature = createHmac("sha256", secret).update(payload).digest("base64url");
-  return signaturesMatch(expectedSignature, signature);
+  return Boolean(parseAdminSession(session));
+}
+
+export function getAdminSessionUsername(session = "") {
+  return parseAdminSession(session)?.username || null;
 }
 
 export const adminSessionOptions = {

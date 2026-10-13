@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { ADMIN_SESSION_COOKIE, hasValidAdminSession, isAdminAuthConfigured } from "../../lib/admin-auth";
+import { ADMIN_SESSION_COOKIE, getAdminSessionUsername, hasValidAdminSession, isAdminAuthConfigured } from "../../lib/admin-auth";
 import AdminDashboard from "./admin-dashboard";
 import AdminLogin from "./admin-login";
 import "./atelier.css";
@@ -14,5 +14,7 @@ export default async function AtelierPage() {
   const session = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
   const authenticated = hasValidAdminSession(session);
 
-  return authenticated ? <AdminDashboard /> : <AdminLogin configured={isAdminAuthConfigured()} />;
+  return authenticated
+    ? <AdminDashboard username={getAdminSessionUsername(session)} />
+    : <AdminLogin configured={isAdminAuthConfigured()} />;
 }

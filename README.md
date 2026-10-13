@@ -17,6 +17,7 @@ The admin workspace is intentionally unlinked from the storefront and excluded f
 Before using it, copy `.env.example` to `.env.local` and set the admin and Supabase values:
 
 ```bash
+ADMIN_USERNAME=your-admin-username
 ADMIN_PASSWORD=use-a-long-unique-password
 ADMIN_SESSION_SECRET=use-a-random-secret-with-at-least-32-characters
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
@@ -33,11 +34,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 Create a Supabase project and run [`supabase/migrations/20261005220000_store.sql`](./supabase/migrations/20261005220000_store.sql), followed by [`supabase/migrations/20261008220000_customer_profiles.sql`](./supabase/migrations/20261008220000_customer_profiles.sql), in its SQL Editor. The customer profile migration creates a profile record automatically for each email/password account, including accounts that already exist. Passwords remain managed by Supabase Authentication and are never copied into the profile table. Copy the project URL and anon key into the matching variables above. Keep the service-role key server-only; never prefix it with `NEXT_PUBLIC_` or expose it in client code. `SUPABASE_DB_URL` is only for direct PostgreSQL tools and migrations; the storefront uses the Supabase API keys above. Use the Session pooler connection URI for database tooling and keep it private. Enable email/password sign-in in Supabase Authentication. Restart the development server after editing `.env.local`.
 
-On Vercel or another serverless host, add these variables in the project’s production environment settings. The admin password never reaches the browser. A successful admin sign-in creates an HMAC-signed, HTTP-only, SameSite-Strict session cookie that expires after eight hours; production cookies are HTTPS-only.
+On Vercel or another serverless host, add these variables in the project’s production environment settings. The admin username and password never reach the browser as configuration values. A successful sign-in creates an HMAC-signed, HTTP-only, SameSite-Strict session cookie containing the signed-in username; it expires after eight hours, and production cookies are HTTPS-only.
 
 ## Database-backed store
 
-Products and prices are loaded from Supabase and edited through admin-only server routes. Customer accounts use Supabase email/password authentication. Orders are created for the signed-in customer and stored with server-calculated prices and totals; they remain `awaiting_payment` until the Mobile Money transfer is manually verified. No card details are collected or processed. The cart and wishlist remain in the current browser and are not synced between devices yet.
+Products and prices are loaded from Supabase and edited through admin-only server routes. Customer accounts use Supabase email/password authentication, with profile records created automatically by a database trigger. Orders are created for the signed-in customer and stored with server-calculated prices and totals; they remain `awaiting_payment` until the Mobile Money transfer is manually verified. A signed-in customer's cart and wishlist are saved automatically in the customer's Supabase Auth metadata and restored across devices. Guest cart and wishlist data are kept only in page memory and are merged into the account after sign-in; they are not saved in browser storage. No cart or wishlist migration is required. No card details are collected or processed.
 
 The API validates customer access tokens and only returns orders belonging to that customer. The admin dashboard has a separate admin-session-protected orders view, polls for new orders every 30 seconds while open, and can show browser notifications after the admin enables them. Browser notifications require the dashboard to remain open and permission to be granted. Database tables have row-level security enabled; privileged database access stays in server routes using `SUPABASE_SERVICE_ROLE_KEY`. Do not add public RLS policies for the service-only tables.
 

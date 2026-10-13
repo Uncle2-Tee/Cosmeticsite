@@ -4,7 +4,7 @@ import {
   adminSessionOptions,
   createAdminSession,
   isAdminAuthConfigured,
-  passwordMatches,
+  credentialsMatch,
 } from "../../../../lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -14,15 +14,16 @@ export async function POST(request) {
     return NextResponse.json({ error: "Admin access has not been configured." }, { status: 503 });
   }
 
+  let username = "";
   let password = "";
   try {
-    ({ password = "" } = await request.json());
+    ({ username = "", password = "" } = await request.json());
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  if (typeof password !== "string" || !passwordMatches(password)) {
-    return NextResponse.json({ error: "That password is not recognized." }, { status: 401 });
+  if (!credentialsMatch(username, password)) {
+    return NextResponse.json({ error: "That username or password is not recognized." }, { status: 401 });
   }
 
   const session = createAdminSession();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckIcon from "@mui/icons-material/Check";
@@ -86,16 +86,83 @@ export default function Home() {
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [toast, setToast] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [customerStoreOwnerId, setCustomerStoreOwnerId] = useState(null);
+  const customerStoreOwnerRef = useRef(customerStoreOwnerId);
+  const cartRef = useRef(cart);
+  const wishlistRef = useRef(wishlist);
+  const customerStoreSaveQueue = useRef(Promise.resolve());
 
   useEffect(() => {
-    const restoreSavedStore = window.setTimeout(() => {
-      try { const savedCart = JSON.parse(localStorage.getItem("lumera-cart")); const savedWishlist = JSON.parse(localStorage.getItem("lumera-wishlist")); if (Array.isArray(savedCart)) setCart(savedCart); if (Array.isArray(savedWishlist)) setWishlist(savedWishlist.filter((id) => typeof id === "string")); } catch { /* Browser storage can be unavailable in private contexts. */ }
-      setLoaded(true);
-    }, 0);
-    return () => window.clearTimeout(restoreSavedStore);
+    cartRef.current = cart;
+    wishlistRef.current = wishlist;
+    customerStoreOwnerRef.current = customerStoreOwnerId;
+  }, [cart, wishlist, customerStoreOwnerId]);
+  useEffect(() => {
+    const readyTimer = window.setTimeout(() => setLoaded(true), 0);
+    return () => window.clearTimeout(readyTimer);
   }, []);
-  useEffect(() => { if (loaded) localStorage.setItem("lumera-cart", JSON.stringify(cart)); }, [cart, loaded]);
-  useEffect(() => { if (loaded) localStorage.setItem("lumera-wishlist", JSON.stringify(wishlist)); }, [wishlist, loaded]);
+  useEffect(() => {
+    if (!loaded || !authChecked) return undefined;
+    const userId = customerSession?.user?.id;
+    if (!userId) {
+      if (customerStoreOwnerRef.current) {
+        setCart([]);
+        setWishlist([]);
+        setCustomerStoreOwnerId(null);
+      }
+      return undefined;
+    }
+    let cancelled = false;
+    fetch("/api/customer/store", {
+      headers: { Authorization: `Bearer ${customerSession.access_token}` },
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Could not load your saved cart and wishlist.");
+        return body;
+      })
+      .then(({ cart: savedCart, wishlist: savedWishlist }) => {
+        if (cancelled || !Array.isArray(savedCart) || !Array.isArray(savedWishlist)) return;
+        const mergedCart = new Map(cartRef.current.map((item) => [item.id, item]));
+        savedCart.forEach((item) => {
+          const current = mergedCart.get(item.id);
+          mergedCart.set(item.id, { ...current, ...item, quantity: Math.max(current?.quantity || 0, item.quantity) });
+        });
+        setCart([...mergedCart.values()]);
+        setWishlist([...new Set([...wishlistRef.current, ...savedWishlist])]);
+        setCustomerStoreOwnerId(userId);
+      })
+      .catch((error) => {
+        if (!cancelled) setToast(error.message || "Could not load your saved cart and wishlist.");
+      });
+    return () => { cancelled = true; };
+  }, [loaded, authChecked, customerSession]);
+  useEffect(() => {
+    const userId = customerSession?.user?.id;
+    if (!loaded || !authChecked || !userId || customerStoreOwnerId !== userId) return undefined;
+    const timer = window.setTimeout(() => {
+      customerStoreSaveQueue.current = customerStoreSaveQueue.current
+        .catch(() => {})
+        .then(async () => {
+          const response = await fetch("/api/customer/store", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${customerSession.access_token}`,
+            },
+            body: JSON.stringify({
+              cart: cart.map((item) => ({ productId: item.id, quantity: item.quantity })),
+              wishlist,
+            }),
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error || "Could not save your cart and wishlist.");
+        })
+        .catch((error) => setToast(error.message || "Could not save your cart and wishlist."));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [cart, wishlist, loaded, authChecked, customerSession, customerStoreOwnerId]);
   useEffect(() => {
     if (!mobileAccountSectionOpen || !window.matchMedia("(max-width: 760px)").matches) return undefined;
     const previousOverflow = document.body.style.overflow;

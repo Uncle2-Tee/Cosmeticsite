@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function AdminLogin({ configured }) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -15,7 +16,7 @@ export default function AdminLogin({ configured }) {
     setError("");
     setSubmitting(true);
     try {
-      const response = await fetch("/api/admin/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
+      const response = await fetch("/api/admin/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
       const body = await response.json();
       if (!response.ok) { setError(body.error || "Unable to sign in."); return; }
       router.refresh();
@@ -23,5 +24,5 @@ export default function AdminLogin({ configured }) {
     finally { setSubmitting(false); }
   }
 
-  return <main className="atelier-shell"><section className="login-card"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><p className="atelier-kicker">Private workspace</p><h1>Store admin</h1>{configured ? <><p className="atelier-intro">Sign in to manage the Doresther Tradings product collection.</p><form onSubmit={submit}><label htmlFor="admin-password">Password</label><input id="admin-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" autoFocus />{error && <p className="form-error" role="alert">{error}</p>}<button type="submit" disabled={submitting}>{submitting ? "Signing in…" : "Sign in securely"}<span>→</span></button></form></> : <><p className="atelier-intro">Secure admin access is not configured yet.</p><div className="setup-note"><strong>Before publishing</strong><p>Set <code>ADMIN_PASSWORD</code> and a random 32+ character <code>ADMIN_SESSION_SECRET</code> in <code>.env.local</code> for local development, or your hosting provider’s environment for production. Restart the app after changing them.</p></div></>}<Link className="return-link" href="/">← Return to storefront</Link></section></main>;
+  return <main className="atelier-shell"><section className="login-card"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><p className="atelier-kicker">Private workspace</p><h1>Store admin</h1>{configured ? <><p className="atelier-intro">Sign in to manage the Doresther Tradings product collection.</p><form onSubmit={submit}><label htmlFor="admin-username">Username</label><input id="admin-username" type="text" value={username} onChange={(event) => setUsername(event.target.value)} required autoComplete="username" autoFocus /><label htmlFor="admin-password">Password</label><input id="admin-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />{error && <p className="form-error" role="alert">{error}</p>}<button type="submit" disabled={submitting}>{submitting ? "Signing in…" : "Sign in securely"}<span>→</span></button></form></> : <><p className="atelier-intro">Secure admin access is not configured yet.</p><div className="setup-note"><strong>Before publishing</strong><p>Set <code>ADMIN_USERNAME</code>, <code>ADMIN_PASSWORD</code>, and a random 32+ character <code>ADMIN_SESSION_SECRET</code> in <code>.env.local</code> for local development, or your hosting provider’s environment for production. Restart the app after changing them.</p></div></>}<Link className="return-link" href="/">← Return to storefront</Link></section></main>;
 }
