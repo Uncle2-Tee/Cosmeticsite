@@ -14,16 +14,14 @@ Visit `http://localhost:3000` for the customer storefront.
 
 The admin workspace is intentionally unlinked from the storefront and excluded from search indexing. Its route is `/atelier`.
 
-Before using it, copy `.env.example` to `.env.local` and set the admin and Supabase values:
+Before using it, copy `.env.example` to `.env.local` and set the admin and PostgreSQL values:
 
 ```bash
 ADMIN_USERNAME=your-admin-username
 ADMIN_PASSWORD=use-a-long-unique-password
 ADMIN_SESSION_SECRET=use-a-random-secret-with-at-least-32-characters
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-SUPABASE_DB_URL=postgresql://postgres.PROJECT_REF:ROTATED_DATABASE_PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.project-ref:URL-ENCODED-PASSWORD@pooler-host:6543/postgres?pgbouncer=true
+DIRECT_URL=postgresql://postgres.project-ref:URL-ENCODED-PASSWORD@pooler-host:5432/postgres
 ```
 
 You can generate a suitable session secret with:
@@ -32,15 +30,24 @@ You can generate a suitable session secret with:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-Create a Supabase project and run [`supabase/migrations/20261005220000_store.sql`](./supabase/migrations/20261005220000_store.sql), followed by [`supabase/migrations/20261008220000_customer_profiles.sql`](./supabase/migrations/20261008220000_customer_profiles.sql), in its SQL Editor. The customer profile migration creates a profile record automatically for each email/password account, including accounts that already exist. Passwords remain managed by Supabase Authentication and are never copied into the profile table. Copy the project URL and anon key into the matching variables above. Keep the service-role key server-only; never prefix it with `NEXT_PUBLIC_` or expose it in client code. `SUPABASE_DB_URL` is only for direct PostgreSQL tools and migrations; the storefront uses the Supabase API keys above. Use the Session pooler connection URI for database tooling and keep it private. Enable email/password sign-in in Supabase Authentication. Restart the development server after editing `.env.local`.
+Set `DATABASE_URL` and `DIRECT_URL` to PostgreSQL connection strings. For Supabase-hosted PostgreSQL, use the pooler connection on port `6543` with `pgbouncer=true` for `DATABASE_URL`, and port `5432` for `DIRECT_URL`. URL-encode reserved characters in the password (for example, `@` becomes `%40`). Apply the Prisma schema and generate its client with:
+
+```bash
+npx prisma db push
+npx prisma generate
+npx prisma db execute --schema prisma/schema.prisma --file prisma/enable-rls.sql
+npm run db:seed
+```
+
+The seed command adds the existing starter catalogue products without replacing products already in the database. The application connects to PostgreSQL only from server routes through Prisma. Do not expose database credentials to browser code. Restart the development server after editing `.env.local`.
 
 On Vercel or another serverless host, add these variables in the project’s production environment settings. The admin username and password never reach the browser as configuration values. A successful sign-in creates an HMAC-signed, HTTP-only, SameSite-Strict session cookie containing the signed-in username; it expires after eight hours, and production cookies are HTTPS-only.
 
 ## Database-backed store
 
-Products and prices are loaded from Supabase and edited through admin-only server routes. Customer accounts use Supabase email/password authentication, with profile records created automatically by a database trigger. Orders are created for the signed-in customer and stored with server-calculated prices and totals; they remain `awaiting_payment` until the Mobile Money transfer is manually verified. A signed-in customer's cart and wishlist are saved automatically in the customer's Supabase Auth metadata and restored across devices. Guest cart and wishlist data are kept only in page memory and are merged into the account after sign-in; they are not saved in browser storage. No cart or wishlist migration is required. No card details are collected or processed.
+Products, product images, customer profiles, sessions, carts, wishlists, and orders are stored in PostgreSQL. Customer sign-up and login use database-backed accounts with scrypt-hashed passwords and HTTP-only session cookies. Accounts activate immediately; email-based password recovery is not available until an email delivery provider is configured. Orders use server-calculated prices and totals and remain `awaiting_payment` until the Mobile Money transfer is manually verified. Guest cart and wishlist data are kept only in page memory and are merged into the account after sign-in; they are not saved in browser storage. No card details are collected or processed.
 
-The API validates customer access tokens and only returns orders belonging to that customer. The admin dashboard has a separate admin-session-protected orders view, polls for new orders every 30 seconds while open, and can show browser notifications after the admin enables them. Browser notifications require the dashboard to remain open and permission to be granted. Database tables have row-level security enabled; privileged database access stays in server routes using `SUPABASE_SERVICE_ROLE_KEY`. Do not add public RLS policies for the service-only tables.
+The API validates the HTTP-only customer session cookie and only returns orders belonging to that customer. The admin dashboard has a separate admin-session-protected orders view, polls for new orders every 30 seconds while open, and can show browser notifications after the admin enables them. Browser notifications require the dashboard to remain open and permission to be granted. Database tables have row-level security enabled; all database access stays in server routes. Do not add public RLS policies for these tables.
 
 Before accepting real payments, connect a payment provider and implement verified payment callbacks and order status updates.
 

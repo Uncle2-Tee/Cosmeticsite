@@ -24,5 +24,44 @@ export default function AdminLogin({ configured }) {
     finally { setSubmitting(false); }
   }
 
-  return <main className="atelier-shell"><section className="login-card"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><p className="atelier-kicker">Private workspace</p><h1>Store admin</h1>{configured ? <><p className="atelier-intro">Sign in to manage the Doresther Tradings product collection.</p><form onSubmit={submit}><label htmlFor="admin-username">Username</label><input id="admin-username" type="text" value={username} onChange={(event) => setUsername(event.target.value)} required autoComplete="username" autoFocus /><label htmlFor="admin-password">Password</label><input id="admin-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />{error && <p className="form-error" role="alert">{error}</p>}<button type="submit" disabled={submitting}>{submitting ? "Signing in…" : "Sign in securely"}<span>→</span></button></form></> : <><p className="atelier-intro">Secure admin access is not configured yet.</p><div className="setup-note"><strong>Before publishing</strong><p>Set <code>ADMIN_USERNAME</code>, <code>ADMIN_PASSWORD</code>, and a random 32+ character <code>ADMIN_SESSION_SECRET</code> in <code>.env.local</code> for local development, or your hosting provider’s environment for production. Restart the app after changing them.</p></div></>}<Link className="return-link" href="/">← Return to storefront</Link></section></main>;
+  return <main className="atelier-shell">
+    <section className="admin-login-layout" aria-labelledby="admin-login-title">
+      <aside className="admin-login-aside">
+        <div className="atelier-brand brand-mark" aria-label="Doresther Tradings">
+          <span className="brand-word">Doresther</span>
+          <span className="brand-tradings">Tradings</span>
+        </div>
+        <div className="admin-login-aside-copy">
+          <p className="admin-login-overline">Private workspace</p>
+          <h1>Thoughtful business starts with a clear view.</h1>
+          <p>Manage your product collection and keep customer orders moving, all from one secure place.</p>
+        </div>
+        <p className="admin-login-aside-foot">Doresther Tradings <span>·</span> Store administration</p>
+      </aside>
+      <div className="admin-login-main">
+        <div className="admin-login-heading">
+          <p className="atelier-kicker">Admin access</p>
+          <h2 id="admin-login-title">Welcome back.</h2>
+          <p className="atelier-intro">{configured ? "Sign in with your admin credentials to continue." : "Admin access needs to be configured before you can sign in."}</p>
+        </div>
+        {configured ? <form className="admin-login-form" onSubmit={submit}>
+          <label htmlFor="admin-username">Username</label>
+          <input id="admin-username" type="text" value={username} onChange={(event) => setUsername(event.target.value)} required autoComplete="username" autoFocus />
+          <label htmlFor="admin-password">Password</label>
+          <input id="admin-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <button type="submit" disabled={submitting}>
+            <span>{submitting ? "Signing in…" : "Sign in to dashboard"}</span><span aria-hidden="true">→</span>
+          </button>
+          <p className="admin-login-security">Your session is private and protected.</p>
+        </form> : <div className="setup-note">
+          <strong>Finish admin setup</strong>
+          <p>Set <code>ADMIN_USERNAME</code>, <code>ADMIN_PASSWORD</code>, and a random 32+ character <code>ADMIN_SESSION_SECRET</code> in <code>.env.local</code> for local development, or your hosting provider’s environment for production. Restart the app after changing them.</p>
+        </div>}
+        <div className="admin-login-footer">
+          <Link className="return-link" href="/">← Return to storefront</Link>
+        </div>
+      </div>
+    </section>
+  </main>;
 }

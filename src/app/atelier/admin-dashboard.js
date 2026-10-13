@@ -234,7 +234,7 @@ export default function AdminDashboard({ username }) {
   return <main className="dashboard-shell">
     <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div><span className="secure-status">● Signed in as {username}</span><button onClick={signOut}>Sign out</button></div></header>
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
-    {message && !databaseReady && <p className="database-warning" role="alert">{message} Add the Supabase environment values, then run the migration described in the README.</p>}
+    {message && !databaseReady && <p className="database-warning" role="alert">{message} Check DATABASE_URL in your environment and run `npx prisma db push` if the schema has not been applied.</p>}
     <section className="orders-panel" aria-labelledby="orders-heading">
       <div className="orders-panel-heading">
         <div><p className="atelier-kicker">Customer activity</p><h2 id="orders-heading">Orders <span className="orders-count">{orders.length}</span></h2><p>New orders are checked every 30 seconds while the dashboard is open.</p></div>
@@ -255,7 +255,7 @@ export default function AdminDashboard({ username }) {
           <div className="admin-order-top"><div><p className="admin-order-number">Order #{order.id.slice(0, 8).toUpperCase()}</p><time dateTime={order.created_at}>{new Intl.DateTimeFormat("en-GH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.created_at))}</time></div><strong className={`admin-order-status status-${order.status}`}>{order.status.replaceAll("_", " ")}</strong></div>
           <div className="admin-order-customer"><strong>{order.customer_name}</strong><a href={`mailto:${order.customer_email}`}>{order.customer_email}</a><a href={`tel:${order.phone}`}>{order.phone}</a></div>
           <ul className="admin-order-items">{(Array.isArray(order.items) ? order.items : []).map((item, index) => <li key={`${order.id}-${item.product_id || item.name}-${index}`}><span>{item.name} × {item.quantity}</span><strong>{money.format(Number(item.line_total ?? Number(item.price) * Number(item.quantity)))}</strong></li>)}</ul>
-          <div className="admin-order-bottom"><div><span>Deliver to</span><p>{order.shipping_address}</p><small>Payment: Mobile Money · {money.format(Number(order.total))}</small></div><label>Status<select aria-label={`Update status for order ${order.id.slice(0, 8)}`} value={order.status} onChange={(event) => updateOrderStatus(order, event.target.value)}>{orderStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></label></div>
+          <div className="admin-order-bottom"><div><span>Delivery address & city / town</span><p>{order.shipping_address}</p><small>Payment: Mobile Money · {money.format(Number(order.total))}</small></div><label>Status<select aria-label={`Update status for order ${order.id.slice(0, 8)}`} value={order.status} onChange={(event) => updateOrderStatus(order, event.target.value)}>{orderStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></label></div>
         </article>
       ))}</div>}
     </section>

@@ -70,7 +70,7 @@
 .admin-order-bottom { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding-top:13px; }
 .admin-order-bottom>div { min-width:0; }
 .admin-order-bottom>div>span,.admin-order-bottom label { color:var(--atelier-muted); font-size:9px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; }
-.admin-order-bottom>div p { margin:5px 0; color:#46404a; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+.admin-order-bottom>div p { margin:5px 0; color:#46404a; font-size:11px; line-height:1.5; overflow-wrap:anywhere; white-space:pre-line; }
 .admin-order-bottom small { color:var(--atelier-muted); font-size:10px; }
 .admin-order-bottom label { flex:0 0 165px; }
 .admin-order-bottom select { display:block; width:100%; min-height:37px; margin-top:6px; padding:7px 9px; border:1px solid var(--atelier-line); border-radius:8px; background:#fff; color:var(--atelier-ink); font-size:11px; letter-spacing:0; text-transform:capitalize; }
@@ -90,4 +90,53 @@
   .catalog-price-editor { grid-column:2 / -1; min-width:0; }
   .catalog-price-editor>div { max-width:260px; }
   .catalog-remove-button { grid-column:3; grid-row:1; align-self:center; margin:0; }
+}
+
+.atelier-shell { min-height:100svh; padding:clamp(16px,4vw,48px); background:radial-gradient(ellipse at 8% 12%,rgba(217,67,120,.09),transparent 34%),#f3f0ed; }
+.admin-login-layout { width:min(100%,1040px); min-height:min(660px,calc(100svh - 96px)); display:grid; grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr); overflow:hidden; background:var(--atelier-paper); border:1px solid rgba(57,27,47,.1); box-shadow:0 28px 90px rgba(43,23,40,.13); }
+.admin-login-aside { position:relative; isolation:isolate; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; padding:clamp(30px,5vw,58px); background:linear-gradient(145deg,#512442,#32192f 80%); color:#fffaf8; }
+.admin-login-aside::before,.admin-login-aside::after { position:absolute; z-index:-1; content:""; border:1px solid rgba(255,255,255,.12); border-radius:50%; pointer-events:none; }
+.admin-login-aside::before { width:440px; height:440px; right:-245px; top:17%; }
+.admin-login-aside::after { width:330px; height:330px; right:-190px; top:25%; }
+.admin-login-aside .atelier-brand { color:#fffaf8; }
+.admin-login-aside-copy { max-width:410px; margin:50px 0; }
+.admin-login-overline { margin:0 0 20px; color:#e5b8cc; font-size:10px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; }
+.admin-login-aside-copy h1 { max-width:400px; margin:0; font:400 clamp(39px,5vw,62px)/.99 Georgia,serif; letter-spacing:-.055em; }
+.admin-login-aside-copy>p:last-child { max-width:340px; margin:22px 0 0; color:rgba(255,250,248,.72); font-size:14px; line-height:1.75; }
+.admin-login-aside-foot { margin:0; color:rgba(255,250,248,.58); font-size:9px; letter-spacing:.12em; text-transform:uppercase; }
+.admin-login-aside-foot span { padding:0 6px; color:#e5b8cc; }
+.admin-login-main { display:flex; flex-direction:column; justify-content:center; min-width:0; padding:clamp(34px,6vw,72px); }
+.admin-login-heading .atelier-kicker { margin:0 0 16px; }
+.admin-login-heading h2 { margin:0; font:400 clamp(38px,4.5vw,54px)/1 Georgia,serif; letter-spacing:-.055em; }
+.admin-login-heading .atelier-intro { max-width:350px; margin:16px 0 32px; color:var(--atelier-muted); font-size:14px; line-height:1.65; }
+.admin-login-form { display:grid; gap:0; }
+.admin-login-form label { margin:0 0 8px; color:#51434e; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+.admin-login-form input { width:100%; min-width:0; min-height:49px; margin:0 0 22px; padding:0 14px; border:1px solid rgba(57,27,47,.2); border-radius:3px; outline:none; background:#fff; color:var(--atelier-ink); font-size:14px; transition:border-color .18s,box-shadow .18s; }
+.admin-login-form input:focus { border-color:var(--atelier-rose); box-shadow:0 0 0 3px rgba(217,67,120,.13); }
+.admin-login-form button { width:100%; min-height:52px; display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:5px; padding:0 18px; border:1px solid var(--atelier-ink); border-radius:3px; background:var(--atelier-ink); color:#fff; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; transition:background .18s,color .18s; }
+.admin-login-form button:hover:not(:disabled) { background:#fff; color:var(--atelier-ink); }
+.admin-login-form button:disabled { opacity:.65; cursor:wait; }
+.admin-login-form button span:last-child { font-size:18px; line-height:1; }
+.admin-login-form .form-error { margin:0 0 12px; }
+.admin-login-security { margin:15px 0 0; color:#7b737a; font-size:11px; line-height:1.5; }
+.admin-login-footer { margin-top:30px; padding-top:18px; border-top:1px solid var(--atelier-line); }
+.admin-login-footer .return-link { margin:0; color:#6c5968; font-size:9px; }
+.admin-login-main .setup-note { margin:0; padding:18px; border:1px solid rgba(129,95,51,.2); background:#f7f1e8; color:#64503a; line-height:1.7; overflow-wrap:anywhere; }
+.admin-login-main .setup-note code { overflow-wrap:anywhere; }
+
+@media (max-width:700px) {
+  .atelier-shell { display:block; padding:14px; }
+  .admin-login-layout { width:min(100%,480px); min-height:0; grid-template-columns:minmax(0,1fr); margin:clamp(8px,4vh,34px) auto; }
+  .admin-login-aside { min-height:0; padding:25px 24px 23px; }
+  .admin-login-aside-copy { margin:39px 0 28px; }
+  .admin-login-aside-copy h1 { max-width:390px; font-size:clamp(35px,10vw,48px); }
+  .admin-login-aside-copy>p:last-child { margin-top:14px; font-size:13px; }
+  .admin-login-aside-foot { font-size:8px; }
+  .admin-login-main { padding:30px 24px 26px; }
+  .admin-login-heading .atelier-intro { margin:12px 0 25px; }
+}
+
+@media (max-width:360px) {
+  .atelier-shell { padding:9px; }
+  .admin-login-aside,.admin-login-main { padding-right:19px; padding-left:19px; }
 }

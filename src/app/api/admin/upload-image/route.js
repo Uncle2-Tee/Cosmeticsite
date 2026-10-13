@@ -1,47 +1,47 @@
-import { createServiceSupabaseClient } from "@/lib/supabase/server";
+import { randomUUID } from "node:crypto";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { ADMIN_SESSION_COOKIE, hasValidAdminSession } from "../../../../lib/admin-auth";
+import { prisma } from "../../../../lib/prisma";
+
+export const runtime = "nodejs";
+
+const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"]);
+
+async function requireAdmin() {
+  const cookieStore = await cookies();
+  return hasValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+}
 
 export async function POST(request) {
-  const supabase = createServiceSupabaseClient();
-  
+  if (!(await requireAdmin())) return NextResponse.json({ error: "Admin sign-in required." }, { status: 401 });
+
   try {
     const formData = await request.formData();
     const file = formData.get("file");
-    
-    if (!file) {
-      return Response.json({ error: "No file provided" }, { status: 400 });
+    if (!file || typeof file.arrayBuffer !== "function") {
+      return NextResponse.json({ error: "No image file was provided." }, { status: 400 });
     }
-    
-    if (!file.type.startsWith("image/")) {
-      return Response.json({ error: "File must be an image" }, { status: 400 });
+    if (!supportedImageTypes.has(file.type)) {
+      return NextResponse.json({ error: "Use a JPEG, PNG, WebP, AVIF, or GIF image." }, { status: 400 });
     }
-    
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return Response.json({ error: "Image file must be smaller than 5 MB" }, { status: 400 });
+    if (file.size < 1 || file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "Image file must be smaller than 5 MB." }, { status: 400 });
     }
-    
-    const buffer = await file.arrayBuffer();
-    const filename = `${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, "-").toLowerCase()}`;
-    const bucketPath = `product-images/${filename}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from("product-images")
-      .upload(bucketPath, buffer, { contentType: file.type, upsert: false });
-    
-    if (uploadError) {
-      if (uploadError.message.includes("Bucket not found")) {
-        return Response.json({ error: "Storage not configured. Contact admin to set up Supabase Storage bucket 'product-images'." }, { status: 500 });
-      }
-      throw uploadError;
-    }
-    
-    const { data } = supabase.storage
-      .from("product-images")
-      .getPublicUrl(bucketPath);
-    
-    return Response.json({ url: data.publicUrl });
+
+    const id = randomUUID();
+    const filename = file.name.replace(/[^a-z0-9.-]/gi, "-").toLowerCase().slice(0, 180) || "product-image";
+    await prisma.productImage.create({
+      data: {
+        id,
+        filename,
+        mimeType: file.type,
+        data: Buffer.from(await file.arrayBuffer()),
+      },
+    });
+    return NextResponse.json({ url: `/api/product-images?id=${id}` });
   } catch (error) {
-    console.error("Image upload error:", error);
-    return Response.json({ error: error.message || "Failed to upload image" }, { status: 500 });
+    console.error("Could not save product image:", error);
+    return NextResponse.json({ error: "Could not save the product image to the database." }, { status: 500 });
   }
 }
