@@ -18,12 +18,10 @@ export async function getCustomerSession() {
 }
 
 export async function signUpCustomer({ fullName, email, password }) {
-  const result = await request("/api/auth/signup", {
+  return request("/api/auth/signup", {
     method: "POST",
     body: { fullName, email, password },
   });
-  publishCustomerSession(result.session);
-  return result;
 }
 
 export async function signInCustomer({ email, password }) {

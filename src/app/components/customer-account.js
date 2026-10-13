@@ -108,7 +108,6 @@ export default function CustomerAccount({ onSessionChange, onSignInSuccess, acti
     }
     setBusy(true);
     setMessage("");
-    setPendingConfirmation(false);
     try {
       if (currentAuthMode === "recovery") {
         setMessage("Email-based password recovery will be available when email delivery is configured. Contact the store for help with your account.");
@@ -120,8 +119,7 @@ export default function CustomerAccount({ onSessionChange, onSignInSuccess, acti
           email: form.email.trim().toLowerCase(),
           password: form.password,
         });
-        onSignInSuccess();
-        setMessage("Your account is ready. You’re signed in.");
+        setMessage("Your account is ready. Log in with your email and password.");
         setAuthMode("signin");
         setForm((current) => ({ ...current, fullName: "", password: "", confirmPassword: "" }));
       } else {

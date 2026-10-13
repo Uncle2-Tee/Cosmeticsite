@@ -212,7 +212,10 @@ export default function Home() {
   }, []);
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(""), 2800); return () => window.clearTimeout(timer); }, [toast]);
   const handleSessionChange = useCallback((session) => setCustomerSession(session), []);
-  const handleSignInSuccess = useCallback(() => setActiveView("account"), []);
+  const handleSignInSuccess = useCallback(() => {
+    window.history.replaceState({}, "", "/");
+    setActiveView("home");
+  }, []);
   useEffect(() => {
     const validViews = new Set(["home", "shop", "about", "account", "wishlist"]);
     const syncViewFromUrl = () => {
@@ -314,6 +317,14 @@ export default function Home() {
   };
 
   const customerAccount = <CustomerAccount onSessionChange={handleSessionChange} onSignInSuccess={handleSignInSuccess} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
+
+  if (!authChecked) {
+    return <main className="auth-gate"><section className="customer-account-root customer-auth-screen"><p className="customer-account-notice">Checking your account…</p></section></main>;
+  }
+
+  if (!customerSession?.user) {
+    return <main className="auth-gate">{customerAccount}</main>;
+  }
 
   return <main className={`page-view page-${activeView}${mobileAccountSectionOpen ? " mobile-account-section-open" : ""}`}>
     <header className="site-header"><div className="brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><nav className="main-nav" aria-label="Main navigation"><button className={activeView === "home" ? "active" : ""} onClick={() => navigateTo("home")}>Home</button><button className={activeView === "shop" ? "active" : ""} onClick={() => navigateTo("shop")}>Shop</button><button className={activeView === "about" ? "active" : ""} onClick={() => navigateTo("about")}>About</button></nav><div className="header-actions"><button className="icon-button search-toggle" onClick={openSearch} aria-label="Search"><Icon name="search" /></button><button className="icon-button mobile-wishlist-toggle" onClick={openWishlist} aria-label={`Wishlist, ${wishlistProducts.length} saved items`}><Icon name="heart" /></button><button className="icon-button account-toggle" onClick={() => navigateTo("account")} aria-label="Account"><Icon name="user" /></button><button className="bag-button" onClick={() => setCartOpen(true)} aria-label={`Open cart, ${cartCount} items`}><Icon name="bag" /><span>Cart</span><b>{cartCount}</b></button><button className="mobile-menu-button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={isMobileMenuOpen} aria-controls="mobile-navigation"><span /><span /></button></div></header>

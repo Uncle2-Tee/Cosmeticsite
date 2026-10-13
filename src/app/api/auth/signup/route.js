@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createCustomerSession, customerSessionCookieOptions, CUSTOMER_SESSION_COOKIE, hashPassword, publicCustomer } from "../../../../lib/customer-auth";
+import { hashPassword } from "../../../../lib/customer-auth";
 import { prisma } from "../../../../lib/prisma";
 
 export const runtime = "nodejs";
@@ -23,16 +23,10 @@ export async function POST(request) {
 
   try {
     const passwordHash = await hashPassword(password);
-    const { profile, session } = await prisma.$transaction(async (transaction) => {
-      const createdProfile = await transaction.customerProfile.create({
-        data: { fullName, email, passwordHash },
-      });
-      const createdSession = await createCustomerSession(createdProfile, transaction);
-      return { profile: createdProfile, session: createdSession };
+    await prisma.customerProfile.create({
+      data: { fullName, email, passwordHash },
     });
-    const response = NextResponse.json({ session: { user: publicCustomer(profile) } }, { status: 201 });
-    response.cookies.set(CUSTOMER_SESSION_COOKIE, session.token, customerSessionCookieOptions);
-    return response;
+    return NextResponse.json({ message: "Account created. Please log in." }, { status: 201 });
   } catch (error) {
     if (error.code === "P2002") {
       return NextResponse.json({ error: "An account with this email already exists. Log in instead." }, { status: 409 });
