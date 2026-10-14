@@ -352,6 +352,33 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .account-empty .eyebrow { margin:0 0 10px; }
 .account-empty>p:not(.eyebrow) { max-width:480px; margin:12px 0 17px; color:#67716a; font-size:13px; line-height:1.6; }
 .account-empty a { color:inherit; }
+.customer-account-tools { display:grid; gap:14px; }
+.customer-account-tools .account-section-heading { margin-bottom:6px; }
+.account-tool-card { min-width:0; padding:22px; border:1px solid var(--line); background:#fffefa; }
+.account-tool-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:17px; }
+.account-tool-heading>div { display:flex; align-items:flex-start; gap:12px; }
+.account-tool-heading>div>svg { flex:0 0 auto; width:21px; height:21px; color:#657967; }
+.account-tool-heading h3 { margin:0; color:var(--ink); font-size:14px; }
+.account-tool-heading p { margin:5px 0 0; color:#68716d; font-size:12px; line-height:1.5; }
+.account-tool-muted { margin:10px 0 0; color:#68716d; font-size:12px; line-height:1.55; }
+.account-notification-item { display:flex; align-items:center; gap:14px; padding:14px 0; border-top:1px solid var(--line); }
+.account-notification-status { min-width:118px; display:inline-flex; align-items:center; gap:7px; color:#53664f; font-size:11px; font-weight:600; text-transform:capitalize; }
+.account-notification-status>span { width:7px; height:7px; flex:0 0 auto; border-radius:50%; background:#78966f; }
+.account-notification-item>div { display:grid; gap:4px; }
+.account-notification-item strong { color:var(--ink); font-size:12px; }
+.account-notification-item p { margin:0; color:#68716d; font-size:11px; }
+.account-preference-toggle { min-width:78px; min-height:37px; padding:0 13px; border:1px solid #748a72; border-radius:999px; background:#edf3e9; color:#3f6042; font-size:11px; font-weight:600; }
+.account-preference-toggle[aria-pressed="true"] { background:#526b50; color:#fff; }
+.account-preference-toggle:disabled { opacity:.55; cursor:wait; }
+.account-settings-form { display:grid; gap:14px; }
+.account-settings-form>.account-tool-heading:not(:first-child) { margin:0; }
+.account-settings-form>label,.account-settings-password-row label { display:grid; gap:7px; color:#403a36; font-size:12px; font-weight:600; }
+.account-settings-form input { width:100%; min-height:45px; padding:10px 13px; border:1px solid #e2dfdc; border-radius:5px; background:#fff; color:var(--ink); font-size:13px; }
+.account-settings-form input:focus-visible { outline:2px solid rgba(129,151,125,.4); outline-offset:1px; border-color:#81977d; }
+.account-settings-password-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.account-settings-divider { height:1px; margin:4px 0; background:var(--line); }
+.account-settings-form .primary-button { justify-self:start; min-height:45px; padding:0 19px; }
+.account-settings-signout { margin:0; }
 .account-help-actions { display:flex; width:max-content; max-width:100%; flex-wrap:wrap; gap:10px; margin-top:8px; }
 .account-help-actions>a { min-height:46px; display:flex; align-items:center; justify-content:center; gap:9px; padding:0 15px; border:1px solid transparent; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; transition:background .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease; }
 .account-help-actions>a:hover { transform:translateY(-1px); }
@@ -421,6 +448,10 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   .account-order-summary>div { gap:9px; }
   .account-order-summary strong { font-size:20px; }
   .account-empty { min-height:180px; padding:22px 18px; }
+  .account-tool-card { padding:17px; }
+  .account-settings-password-row { grid-template-columns:minmax(0,1fr); }
+  .account-notification-item { align-items:flex-start; flex-direction:column; gap:8px; }
+  .account-notification-status { min-width:0; }
   .account-help-actions { width:max-content; gap:9px; }
   .account-help-actions>a { min-height:44px; gap:7px; padding:0 13px; font-size:12px; }
   .wishlist-grid { gap:12px; }

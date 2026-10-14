@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import PersonIcon from "@mui/icons-material/PersonOutlineOutlined";
@@ -12,12 +12,19 @@ import CreditCardIcon from "@mui/icons-material/CreditCardOutlined";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import NotificationsIcon from "@mui/icons-material/NotificationsNone";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
+import LockIcon from "@mui/icons-material/LockOutlined";
 import HelpIcon from "@mui/icons-material/HelpOutlineOutlined";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import PhoneIcon from "@mui/icons-material/CallOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { signInCustomer, signOutCustomer, signUpCustomer } from "../../lib/customer-auth-client";
 import { subscribeToCustomerOrderUpdates } from "../../lib/customer-order-updates";
+
+const notificationPreferenceKey = (userId) => `doresther:order-notifications:${userId}`;
+
+function orderStatusLabel(status) {
+  return status.replaceAll("_", " ");
+}
 
 const accountSections = [
   { id: "profile", label: "My Profile", icon: PersonIcon },
@@ -43,16 +50,101 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-GH", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export default function CustomerAccount({ session, onSignInSuccess, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
+export default function CustomerAccount({ session, onSignInSuccess, onAccountUpdated, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
   const [authMode, setAuthMode] = useState("signin");
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirmPassword: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCurrentAccountPassword, setShowCurrentAccountPassword] = useState(false);
+  const [showNewAccountPassword, setShowNewAccountPassword] = useState(false);
+  const [showConfirmAccountPassword, setShowConfirmAccountPassword] = useState(false);
   const [orders, setOrders] = useState(null);
   const [ordersError, setOrdersError] = useState("");
   const [busy, setBusy] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [message, setMessage] = useState("");
+  const [accountSettings, setAccountSettings] = useState({
+    fullName: session?.user?.user_metadata?.full_name || "",
+    email: session?.user?.email || "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [profileSaveStatus, setProfileSaveStatus] = useState("");
+  const [profileSaveRevision, setProfileSaveRevision] = useState(0);
+  const [savedProfile, setSavedProfile] = useState({
+    fullName: session?.user?.user_metadata?.full_name || "",
+    email: session?.user?.email || "",
+  });
+  const profileSaveInFlight = useRef(false);
+  const [notificationPermission, setNotificationPermission] = useState(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const notificationEnabledRef = useRef(false);
+  const orderStatuses = useRef(new Map());
+  const initialOrdersLoaded = useRef(false);
+
+  useEffect(() => {
+    const user = session?.user;
+    if (!user) return;
+    const timer = window.setTimeout(() => {
+      const permission = typeof Notification === "undefined" ? "unsupported" : Notification.permission;
+      setNotificationPermission(permission);
+      setNotificationsEnabled(permission === "granted"
+        && window.localStorage.getItem(notificationPreferenceKey(user.id)) === "true");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [session]);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    const fullName = accountSettings.fullName.trim();
+    const email = accountSettings.email.trim().toLowerCase();
+    if (!userId || (fullName === savedProfile.fullName && email === savedProfile.email)) return undefined;
+    if (fullName.length < 2 || fullName.length > 120 || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let timer;
+    async function saveProfile() {
+      if (profileSaveInFlight.current) {
+        timer = window.setTimeout(saveProfile, 250);
+        return;
+      }
+      profileSaveInFlight.current = true;
+      setProfileSaveStatus("Saving profile changes…");
+      try {
+        const response = await fetch("/api/customer/account", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fullName, email }),
+        });
+        const { user: updatedUser } = await apiJson(response);
+        setSavedProfile({ fullName, email });
+        onAccountUpdated(updatedUser);
+        if (!cancelled) setProfileSaveStatus("Profile changes saved.");
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Could not save customer profile changes:", error);
+          setProfileSaveStatus(error.message || "Could not save profile changes. Your edits are still here; try changing a field again.");
+        }
+      } finally {
+        profileSaveInFlight.current = false;
+      }
+    }
+
+    timer = window.setTimeout(saveProfile, 600);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [accountSettings.fullName, accountSettings.email, session?.user?.id, savedProfile, profileSaveRevision, onAccountUpdated]);
+
+  useEffect(() => {
+    notificationEnabledRef.current = notificationsEnabled;
+  }, [notificationsEnabled]);
 
   useEffect(() => {
     if (!session?.user?.id) return undefined;
@@ -64,6 +156,24 @@ export default function CustomerAccount({ session, onSignInSuccess, activeSectio
       try {
         const { orders: savedOrders } = await apiJson(await fetch("/api/orders", { cache: "no-store" }));
         if (!cancelled) {
+          const nextStatuses = new Map(savedOrders.map((order) => [order.id, order.status]));
+          if (initialOrdersLoaded.current && notificationEnabledRef.current && typeof Notification !== "undefined" && Notification.permission === "granted") {
+            savedOrders.forEach((order) => {
+              const previousStatus = orderStatuses.current.get(order.id);
+              if (previousStatus !== undefined && previousStatus !== order.status) {
+                try {
+                  new Notification("Your order has been updated", {
+                    body: `Order ${order.id.slice(0, 8).toUpperCase()} is now ${orderStatusLabel(order.status)}.`,
+                    tag: `doresther-order-${order.id}`,
+                  });
+                } catch (error) {
+                  console.error("Could not show browser order notification:", error);
+                }
+              }
+            });
+          }
+          orderStatuses.current = nextStatuses;
+          initialOrdersLoaded.current = true;
           setOrders(savedOrders);
           setOrdersError("");
         }
@@ -78,12 +188,14 @@ export default function CustomerAccount({ session, onSignInSuccess, activeSectio
     }
     const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refreshOrders(); };
     void refreshOrders();
-    const interval = window.setInterval(refreshWhenVisible, 1000);
+    const interval = window.setInterval(refreshWhenVisible, 30000);
     const unsubscribeFromOrderUpdates = subscribeToCustomerOrderUpdates(refreshWhenVisible);
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       cancelled = true;
+      initialOrdersLoaded.current = false;
+      orderStatuses.current = new Map();
       window.clearInterval(interval);
       unsubscribeFromOrderUpdates();
       window.removeEventListener("focus", refreshWhenVisible);
@@ -145,6 +257,77 @@ export default function CustomerAccount({ session, onSignInSuccess, activeSectio
     }
   }
 
+  async function changePassword(event) {
+    event.preventDefault();
+    if (!accountSettings.newPassword || !accountSettings.currentPassword) {
+      setMessage("Enter your current password and a new password to continue.");
+      return;
+    }
+    if (accountSettings.newPassword !== accountSettings.confirmPassword) {
+      setMessage("Your new passwords do not match.");
+      return;
+    }
+    setSettingsBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/customer/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: accountSettings.currentPassword,
+          newPassword: accountSettings.newPassword,
+        }),
+      });
+      const { user } = await apiJson(response);
+      onAccountUpdated(user);
+      setAccountSettings((current) => ({
+        ...current,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+      setMessage("Your password has been changed. Other signed-in sessions have been signed out.");
+    } catch (error) {
+      setMessage(error.message || "Could not update your account.");
+    } finally {
+      setSettingsBusy(false);
+    }
+  }
+
+  async function toggleOrderNotifications() {
+    setNotificationMessage("");
+    if (notificationsEnabled) {
+      setNotificationsEnabled(false);
+      window.localStorage.setItem(notificationPreferenceKey(session.user.id), "false");
+      setNotificationMessage("Browser order notifications are turned off.");
+      return;
+    }
+    if (typeof Notification === "undefined") {
+      setNotificationMessage("Browser notifications are not supported in this browser.");
+      return;
+    }
+    let permission = Notification.permission;
+    if (permission === "default") {
+      try {
+        permission = await Notification.requestPermission();
+      } catch (error) {
+        console.error("Could not request browser notification permission:", error);
+        setNotificationMessage("Your browser could not request notification permission. Check its site settings and try again.");
+        return;
+      }
+    }
+    setNotificationPermission(permission);
+    if (permission !== "granted") {
+      setNotificationMessage(permission === "denied"
+        ? "Notifications are blocked by your browser. Allow them in your browser settings to turn them on."
+        : "Browser notification permission was not granted.");
+      return;
+    }
+    setNotificationsEnabled(true);
+    window.localStorage.setItem(notificationPreferenceKey(session.user.id), "true");
+    setNotificationMessage("You’ll get a browser notification when an order status changes while you’re signed in.");
+  }
+
   if (!session?.user || authMode === "recovery") {
     const currentAuthMode = authMode;
     const isSigningUp = currentAuthMode === "signup";
@@ -202,6 +385,12 @@ export default function CustomerAccount({ session, onSignInSuccess, activeSectio
   }
 
   const fullName = session.user.user_metadata?.full_name || session.user.email;
+  const profileChangesPending = accountSettings.fullName.trim() !== savedProfile.fullName
+    || accountSettings.email.trim().toLowerCase() !== savedProfile.email;
+  const profileDetailsValid = accountSettings.fullName.trim().length >= 2
+    && accountSettings.fullName.trim().length <= 120
+    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountSettings.email.trim())
+    && accountSettings.email.trim().length <= 254;
   return <section className="account-page customer-account-root">
     <header className="account-heading"><div><p className="eyebrow">Customer account</p><h1>Welcome, {fullName}</h1><p>{session.user.email}</p></div><div className="customer-account-actions"><button className="account-cart-link" type="button" onClick={onOpenCart}>Cart <span>{cartCount}</span></button><button className="account-signout-button" type="button" onClick={signOut} disabled={signingOut}><LogoutIcon sx={{ fontSize: 17 }} aria-hidden="true" /> {signingOut ? "Signing out…" : "Sign out"}</button></div></header>
     <div className="account-layout">
@@ -240,8 +429,48 @@ export default function CustomerAccount({ session, onSignInSuccess, activeSectio
         {activeSection === "addresses" && <div className="account-empty"><p className="eyebrow">Delivery details</p><h2>Delivery Addresses</h2><p>No saved delivery addresses yet. Add your delivery address during checkout and it will be included with your order.</p></div>}
         {activeSection === "payments" && <div className="account-empty"><p className="eyebrow">Secure payments</p><h2>Payment Methods</h2><p>Payment is currently handled through Mobile Money at checkout. Payment card details are not stored in your account.</p></div>}
         {activeSection === "returns" && <div className="account-empty account-help-card"><p className="eyebrow">Order support</p><h2>Returns &amp; Refunds</h2><p>For help with a return or refund, contact our support team with your order number. Choose how you’d like to get in touch.</p><div className="account-help-actions"><a className="account-help-call" href="tel:+233535082115"><PhoneIcon aria-hidden="true" /> Call us</a><a className="account-help-whatsapp" href="https://wa.me/233240958153" target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a></div></div>}
-        {activeSection === "notifications" && <div className="account-empty"><p className="eyebrow">Stay in the loop</p><h2>Notifications</h2><p>You’re all caught up. Account notifications will appear here when available.</p></div>}
-        {activeSection === "settings" && <div className="account-empty"><p className="eyebrow">Preferences</p><h2>Settings</h2><p>Your account settings will be available here. You can sign out securely from the account header or menu.</p></div>}
+        {activeSection === "notifications" && <section className="customer-account-tools">
+          <div className="account-section-heading"><div><p className="eyebrow">Stay in the loop</p><h2>Notifications</h2></div></div>
+          <article className="account-tool-card">
+            <div className="account-tool-heading"><div><NotificationsIcon aria-hidden="true" /><div><h3>Order status updates</h3><p>See the latest payment, processing, and delivery status for your orders.</p></div></div></div>
+            {orders === null && <p className="customer-account-notice">Loading your order updates…</p>}
+            {ordersError && <p className="customer-account-notice" role="alert">{ordersError}</p>}
+            {!ordersError && orders?.length === 0 && <p className="account-tool-muted">No order updates yet. Updates will appear here after you place an order.</p>}
+            {(orders || []).map((order) => <article className="account-notification-item" key={order.id}>
+              <span className="account-notification-status"><span aria-hidden="true" />{orderStatusLabel(order.status)}</span>
+              <div><strong>Order {order.id.slice(0, 8).toUpperCase()}</strong><p>{formatDate(order.created_at)} · {new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(Number(order.total))}</p></div>
+            </article>)}
+          </article>
+          <article className="account-tool-card account-notification-preference">
+            <div className="account-tool-heading"><div><NotificationsIcon aria-hidden="true" /><div><h3>Browser notifications</h3><p>Get an alert when an order’s status changes while this account is open.</p></div></div>
+              {notificationPermission === "unsupported"
+                ? <span className="account-tool-muted">Not supported</span>
+                : <button className="account-preference-toggle" type="button" onClick={toggleOrderNotifications} disabled={notificationPermission === null} aria-pressed={notificationsEnabled}>{notificationsEnabled ? "Turn off" : "Turn on"}</button>}
+            </div>
+            {notificationPermission === "denied" && <p className="account-tool-muted">Notifications are blocked in your browser. Update your browser’s site permissions to enable them.</p>}
+            {notificationMessage && <p className="customer-account-notice" role="status">{notificationMessage}</p>}
+            <p className="account-tool-muted">Email and SMS alerts aren’t available yet. Browser notifications are saved for this device.</p>
+          </article>
+        </section>}
+        {activeSection === "settings" && <section className="customer-account-tools">
+          <div className="account-section-heading"><div><p className="eyebrow">Profile &amp; security</p><h2>Settings</h2></div></div>
+          <article className="account-tool-card account-settings-form">
+            <div className="account-tool-heading"><div><PersonIcon aria-hidden="true" /><div><h3>Personal details</h3><p>Update the name and email address on your account.</p></div></div></div>
+            <label htmlFor="account-settings-name">Full name<input id="account-settings-name" autoComplete="name" required minLength={2} maxLength={120} value={accountSettings.fullName} onChange={(event) => { setProfileSaveStatus(""); setAccountSettings({ ...accountSettings, fullName: event.target.value }); }} /></label>
+            <label htmlFor="account-settings-email">Email address<input id="account-settings-email" autoComplete="email" type="email" required maxLength={254} value={accountSettings.email} onChange={(event) => { setProfileSaveStatus(""); setAccountSettings({ ...accountSettings, email: event.target.value }); }} /></label>
+            <p className="account-profile-save-status" role="status" aria-live="polite">{profileChangesPending && !profileDetailsValid ? "Enter a valid name and email address to save your changes." : profileChangesPending && profileSaveStatus !== "Saving profile changes…" && !profileSaveStatus.startsWith("Could not save") ? "Unsaved profile changes." : profileSaveStatus || "Profile details save automatically as you edit them."}</p>
+            {profileSaveStatus.startsWith("Could not save") && <button className="account-text-action" type="button" onClick={() => setProfileSaveRevision((revision) => revision + 1)}>Retry saving profile</button>}
+          </article>
+          <form className="account-tool-card account-settings-form" onSubmit={changePassword}>
+            <div className="account-settings-divider" />
+            <div className="account-tool-heading"><div><LockIcon aria-hidden="true" /><div><h3>Change password</h3><p>Leave these fields blank if you don’t want to change your password.</p></div></div></div>
+            <label htmlFor="account-current-password">Current password<span className="customer-password-field"><input id="account-current-password" autoComplete="current-password" type={showCurrentAccountPassword ? "text" : "password"} value={accountSettings.currentPassword} onChange={(event) => setAccountSettings({ ...accountSettings, currentPassword: event.target.value })} /><button type="button" className="customer-password-toggle" onClick={() => setShowCurrentAccountPassword((visible) => !visible)} aria-label={showCurrentAccountPassword ? "Hide current password" : "Show current password"} aria-pressed={showCurrentAccountPassword}>{showCurrentAccountPassword ? <VisibilityOffIcon fontSize="small" aria-hidden="true" /> : <VisibilityIcon fontSize="small" aria-hidden="true" />}</button></span></label>
+            <div className="account-settings-password-row"><label htmlFor="account-new-password">New password<span className="customer-password-field"><input id="account-new-password" autoComplete="new-password" type={showNewAccountPassword ? "text" : "password"} minLength={8} maxLength={128} value={accountSettings.newPassword} onChange={(event) => setAccountSettings({ ...accountSettings, newPassword: event.target.value })} /><button type="button" className="customer-password-toggle" onClick={() => setShowNewAccountPassword((visible) => !visible)} aria-label={showNewAccountPassword ? "Hide new password" : "Show new password"} aria-pressed={showNewAccountPassword}>{showNewAccountPassword ? <VisibilityOffIcon fontSize="small" aria-hidden="true" /> : <VisibilityIcon fontSize="small" aria-hidden="true" />}</button></span></label><label htmlFor="account-confirm-password">Confirm new password<span className="customer-password-field"><input id="account-confirm-password" autoComplete="new-password" type={showConfirmAccountPassword ? "text" : "password"} minLength={8} maxLength={128} value={accountSettings.confirmPassword} onChange={(event) => setAccountSettings({ ...accountSettings, confirmPassword: event.target.value })} /><button type="button" className="customer-password-toggle" onClick={() => setShowConfirmAccountPassword((visible) => !visible)} aria-label={showConfirmAccountPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmAccountPassword}>{showConfirmAccountPassword ? <VisibilityOffIcon fontSize="small" aria-hidden="true" /> : <VisibilityIcon fontSize="small" aria-hidden="true" />}</button></span></label></div>
+            {message && <p className="customer-account-notice" role="status">{message}</p>}
+            <button className="primary-button wide" type="submit" disabled={settingsBusy}>{settingsBusy ? "Changing password…" : "Change password"}</button>
+          </form>
+          <p className="account-tool-muted account-settings-signout">Sign out of this account from the account header whenever you’re using a shared device.</p>
+        </section>}
         {activeSection === "support" && <div className="account-empty account-help-card"><p className="eyebrow">We’re here to help</p><h2>Help &amp; Support</h2><p>Our team is ready to help with your orders and any questions. Choose how you’d like to get in touch.</p><div className="account-help-actions"><a className="account-help-call" href="tel:+233535082115"><PhoneIcon aria-hidden="true" /> Call us</a><a className="account-help-whatsapp" href="https://wa.me/233240958153" target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a></div></div>}
         {message && <p className="customer-account-notice" role="status">{message}</p>}
       </section>

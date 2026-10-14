@@ -188,6 +188,7 @@ export default function Home() {
     if (!authChecked || !customerSession?.user?.id) return undefined;
     let cancelled = false;
     let requestInFlight = false;
+    let reportedProductsError = false;
     async function refreshProducts() {
       if (cancelled || requestInFlight || document.visibilityState === "hidden") return;
       requestInFlight = true;
@@ -197,6 +198,7 @@ export default function Home() {
         if (!response.ok) throw new Error(body.error || "Shared products are unavailable.");
         if (!Array.isArray(body.products)) throw new Error("The product catalogue response is invalid.");
         if (cancelled) return;
+        reportedProductsError = false;
         setProducts((current) => JSON.stringify(current) === JSON.stringify(body.products) ? current : body.products);
         const productsById = new Map(body.products.map((product) => [product.id, product]));
         setCart((current) => {
@@ -207,7 +209,8 @@ export default function Home() {
           return JSON.stringify(current) === JSON.stringify(updated) ? current : updated;
         });
       } catch (error) {
-        if (!cancelled) {
+        if (!cancelled && !reportedProductsError) {
+          reportedProductsError = true;
           console.error("Could not refresh the product catalogue:", error);
           setToast(error.message || "Shared catalogue unavailable; showing sample products.");
         }
@@ -217,7 +220,7 @@ export default function Home() {
     }
     const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refreshProducts(); };
     void refreshProducts();
-    const interval = window.setInterval(refreshWhenVisible, 3000);
+    const interval = window.setInterval(refreshWhenVisible, 30000);
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
@@ -257,6 +260,9 @@ export default function Home() {
   const handleSignInSuccess = useCallback(() => {
     window.history.replaceState({}, "", "/");
     setActiveView("home");
+  }, []);
+  const handleAccountUpdated = useCallback((user) => {
+    setCustomerSession((current) => current ? { ...current, user } : current);
   }, []);
   useEffect(() => {
     const validViews = new Set(["home", "shop", "about", "account", "wishlist"]);
@@ -359,7 +365,7 @@ export default function Home() {
     }
   };
 
-  const customerAccount = <CustomerAccount session={customerSession} onSignInSuccess={handleSignInSuccess} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
+  const customerAccount = <CustomerAccount session={customerSession} onSignInSuccess={handleSignInSuccess} onAccountUpdated={handleAccountUpdated} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
 
   if (!customerSession?.user) {
     return <main className="auth-gate">{customerAccount}</main>;
