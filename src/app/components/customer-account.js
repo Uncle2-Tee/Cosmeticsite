@@ -135,14 +135,14 @@ export default function CustomerAccount({ session, onSignInSuccess, activeSectio
       </section>;
     }
     return <section className="customer-account-root customer-auth-screen">
-      <div className={`customer-auth-card${isSigningUp ? " customer-signup-card" : ""}`}>
+      <div className="customer-auth-card">
         <div className="customer-auth-wordmark" aria-label="Doresther Trading">
           <span className="customer-auth-monogram">D</span>
           <span className="customer-auth-brand-name">Doresther <em>Trading</em></span>
         </div>
         <h1>{isSigningUp ? "Sign Up" : "Welcome Back"}</h1>
         <p className="customer-auth-intro">{isSigningUp ? "Join us for thoughtful essentials and easy order tracking." : "Log in to continue to your Doresther Trading account."}</p>
-        <form className={isSigningUp ? "customer-signup-form" : ""} onSubmit={submitAuth}>
+        <form onSubmit={submitAuth}>
           {isSigningUp && <label htmlFor="customer-full-name">Full name<input id="customer-full-name" name="name" type="text" autoComplete="name" placeholder="e.g. Elliot Fiawornu" required maxLength={120} value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>}
           <label htmlFor="customer-email">Email<input id="customer-email" name="email" type="email" autoComplete="email" placeholder="e.g. elliot@example.com" required maxLength={254} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
           <label htmlFor="customer-password">Password
