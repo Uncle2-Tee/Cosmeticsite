@@ -16,7 +16,7 @@ import HelpIcon from "@mui/icons-material/HelpOutlineOutlined";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import PhoneIcon from "@mui/icons-material/CallOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import { getCustomerSession, listenForCustomerSessionChanges, signInCustomer, signOutCustomer, signUpCustomer } from "../../lib/customer-auth-client";
+import { signInCustomer, signOutCustomer, signUpCustomer } from "../../lib/customer-auth-client";
 
 const accountSections = [
   { id: "profile", label: "My Profile", icon: PersonIcon },
@@ -42,45 +42,16 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-GH", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export default function CustomerAccount({ onSessionChange, onSignInSuccess, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
-  const [session, setSession] = useState(null);
+export default function CustomerAccount({ session, onSignInSuccess, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
   const [authMode, setAuthMode] = useState("signin");
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirmPassword: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [orders, setOrders] = useState(null);
   const [ordersError, setOrdersError] = useState("");
-  const [authChecked, setAuthChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    let mounted = true;
-    let receivedAuthEvent = false;
-    getCustomerSession().then((currentSession) => {
-      if (!mounted || receivedAuthEvent) return;
-      setSession(currentSession);
-      setAuthChecked(true);
-      onSessionChange(currentSession);
-    }).catch((error) => {
-      if (!mounted || receivedAuthEvent) return;
-      console.error("Could not load the customer session:", error);
-      setMessage(error.message || "Could not check your sign-in session. Please refresh and try again.");
-      setAuthChecked(true);
-    });
-    const unsubscribe = listenForCustomerSessionChanges((nextSession) => {
-      receivedAuthEvent = true;
-      setSession(nextSession);
-      setOrders(null);
-      setAuthChecked(true);
-      onSessionChange(nextSession);
-    });
-    return () => {
-      mounted = false;
-      unsubscribe();
-    };
-  }, [onSessionChange]);
 
   useEffect(() => {
     if (!session?.user?.id) return undefined;
@@ -91,10 +62,6 @@ export default function CustomerAccount({ onSessionChange, onSignInSuccess, acti
       .catch((error) => { if (!cancelled) { setOrders([]); setOrdersError(error.message); } });
     return () => { cancelled = true; };
   }, [session, refreshKey]);
-
-  if (!authChecked) {
-    return <section className="account-page customer-account-root"><p className="customer-account-notice">Checking your account…</p></section>;
-  }
 
   async function submitAuth(event) {
     event.preventDefault();
@@ -168,14 +135,14 @@ export default function CustomerAccount({ onSessionChange, onSignInSuccess, acti
       </section>;
     }
     return <section className="customer-account-root customer-auth-screen">
-      <div className="customer-auth-card">
+      <div className={`customer-auth-card${isSigningUp ? " customer-signup-card" : ""}`}>
         <div className="customer-auth-wordmark" aria-label="Doresther Trading">
           <span className="customer-auth-monogram">D</span>
           <span className="customer-auth-brand-name">Doresther <em>Trading</em></span>
         </div>
         <h1>{isSigningUp ? "Sign Up" : "Welcome Back"}</h1>
         <p className="customer-auth-intro">{isSigningUp ? "Join us for thoughtful essentials and easy order tracking." : "Log in to continue to your Doresther Trading account."}</p>
-        <form onSubmit={submitAuth}>
+        <form className={isSigningUp ? "customer-signup-form" : ""} onSubmit={submitAuth}>
           {isSigningUp && <label htmlFor="customer-full-name">Full name<input id="customer-full-name" name="name" type="text" autoComplete="name" placeholder="e.g. Elliot Fiawornu" required maxLength={120} value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>}
           <label htmlFor="customer-email">Email<input id="customer-email" name="email" type="email" autoComplete="email" placeholder="e.g. elliot@example.com" required maxLength={254} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
           <label htmlFor="customer-password">Password

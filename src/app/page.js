@@ -211,7 +211,6 @@ export default function Home() {
     };
   }, []);
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(""), 2800); return () => window.clearTimeout(timer); }, [toast]);
-  const handleSessionChange = useCallback((session) => setCustomerSession(session), []);
   const handleSignInSuccess = useCallback(() => {
     window.history.replaceState({}, "", "/");
     setActiveView("home");
@@ -316,11 +315,7 @@ export default function Home() {
     }
   };
 
-  const customerAccount = <CustomerAccount onSessionChange={handleSessionChange} onSignInSuccess={handleSignInSuccess} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
-
-  if (!authChecked) {
-    return <main className="auth-gate"><section className="customer-account-root customer-auth-screen"><p className="customer-account-notice">Checking your account…</p></section></main>;
-  }
+  const customerAccount = <CustomerAccount session={customerSession} onSignInSuccess={handleSignInSuccess} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
 
   if (!customerSession?.user) {
     return <main className="auth-gate">{customerAccount}</main>;
