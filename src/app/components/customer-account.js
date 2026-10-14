@@ -134,7 +134,7 @@ export default function CustomerAccount({ session, onSignInSuccess, activeSectio
         </div>
       </section>;
     }
-    return <section className="customer-account-root customer-auth-screen">
+    return <section className={`customer-account-root customer-auth-screen${isSigningUp ? " customer-signup-screen" : ""}`}>
       <div className="customer-auth-card">
         <div className="customer-auth-wordmark" aria-label="Doresther Trading">
           <span className="customer-auth-monogram">D</span>
