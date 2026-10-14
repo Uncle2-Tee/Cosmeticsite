@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import NotificationsIcon from "@mui/icons-material/NotificationsNone";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
+import { notifyCustomerOrderUpdate } from "../../lib/customer-order-updates";
 
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
 const emptyForm = { name: "", category: "Serums", price: "", size: "", image: "", description: "", cardDescription: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
@@ -218,6 +219,7 @@ export default function AdminDashboard({ username }) {
         body: JSON.stringify({ orderId: order.id, status }),
       }));
       setOrders((current) => current.map((item) => item.id === savedOrder.id ? savedOrder : item));
+      notifyCustomerOrderUpdate();
       setOrderMessage(`Order status updated to ${status.replaceAll("_", " ")}.`);
     } catch (error) {
       setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status: previousStatus } : item));

@@ -88,7 +88,7 @@ export async function POST(request) {
       data: {
         userId: user.id,
         status: "awaiting_payment",
-        paymentMethod: "momo",
+        paymentMethod: "paystack",
         items: orderItems,
         subtotal,
         shipping,

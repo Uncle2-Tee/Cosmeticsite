@@ -17,6 +17,7 @@ import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import PhoneIcon from "@mui/icons-material/CallOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { signInCustomer, signOutCustomer, signUpCustomer } from "../../lib/customer-auth-client";
+import { subscribeToCustomerOrderUpdates } from "../../lib/customer-order-updates";
 
 const accountSections = [
   { id: "profile", label: "My Profile", icon: PersonIcon },
@@ -56,11 +57,38 @@ export default function CustomerAccount({ session, onSignInSuccess, activeSectio
   useEffect(() => {
     if (!session?.user?.id) return undefined;
     let cancelled = false;
-    fetch("/api/orders", { cache: "no-store" })
-      .then(apiJson)
-      .then(({ orders: savedOrders }) => { if (!cancelled) { setOrders(savedOrders); setOrdersError(""); } })
-      .catch((error) => { if (!cancelled) { setOrders([]); setOrdersError(error.message); } });
-    return () => { cancelled = true; };
+    let requestInFlight = false;
+    async function refreshOrders() {
+      if (cancelled || requestInFlight || document.visibilityState === "hidden") return;
+      requestInFlight = true;
+      try {
+        const { orders: savedOrders } = await apiJson(await fetch("/api/orders", { cache: "no-store" }));
+        if (!cancelled) {
+          setOrders(savedOrders);
+          setOrdersError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Could not refresh customer orders:", error);
+          setOrdersError(error.message || "Could not load your orders.");
+        }
+      } finally {
+        requestInFlight = false;
+      }
+    }
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refreshOrders(); };
+    void refreshOrders();
+    const interval = window.setInterval(refreshWhenVisible, 1000);
+    const unsubscribeFromOrderUpdates = subscribeToCustomerOrderUpdates(refreshWhenVisible);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      unsubscribeFromOrderUpdates();
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [session, refreshKey]);
 
   async function submitAuth(event) {

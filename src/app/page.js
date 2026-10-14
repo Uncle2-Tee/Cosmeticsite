@@ -58,6 +58,22 @@ function AccountEmptyState({ title, message, action, onAction }) {
   return <div className="account-empty"><p className="eyebrow">Account</p><h2>{title}</h2><p>{message}</p>{action && <button className="account-text-action" onClick={onAction}>{action} <Icon name="arrow" size={15} /></button>}</div>;
 }
 
+function PaymentPage({ order, onClose }) {
+  return <><button className="modal-backdrop" onClick={onClose} aria-label="Close payment page" /><section className="checkout-modal checkout-dialog payment-dialog" role="dialog" aria-modal="true" aria-labelledby="payment-title">
+    <button className="icon-button close-modal" onClick={onClose} aria-label="Close payment page"><Icon name="close" /></button>
+    <header className="checkout-heading"><p className="eyebrow">Order {order.id.slice(0, 8).toUpperCase()}</p><h2 id="payment-title">Complete payment</h2></header>
+    <div className="payment-order-summary">
+      <div className="checkout-summary-heading"><h3>Order summary</h3><span>{order.items.length} {order.items.length === 1 ? "item" : "items"}</span></div>
+      <div className="checkout-summary-items">{order.items.map((item) => <article className="checkout-summary-item" key={item.product_id}><span className="checkout-summary-image" style={{ backgroundImage: `url(${item.image})` }} role="img" aria-label={item.name} /><div><h4>{item.name}</h4><p>Qty {item.quantity}</p></div><strong>{money.format(item.line_total)}</strong></article>)}</div>
+      <div className="checkout-summary-totals"><p><span>Subtotal</span><b>{money.format(order.subtotal)}</b></p><p><span>Delivery</span><b>{order.shipping ? money.format(order.shipping) : "Complimentary"}</b></p><p className="checkout-summary-total"><span>Total to pay</span><b>{money.format(order.total)}</b></p></div>
+    </div>
+    <div className="payment-provider-card"><CreditCardIcon aria-hidden="true" /><div><strong>Paystack</strong><span>Secure payment, right here on our site</span></div><span className="payment-coming-soon">Coming soon</span></div>
+    <p className="payment-pending-note" role="status">Your order is saved, but payment is not available yet. Paystack will be connected here; you will not be charged until then.</p>
+    <button className="primary-button wide payment-submit" type="button" disabled>Pay {money.format(order.total)} with Paystack</button>
+    <button className="account-text-action payment-orders-link" type="button" onClick={onClose}>View my orders <Icon name="arrow" size={15} /></button>
+  </section></>;
+}
+
 function ProductGuideList({ content, numbered = false }) {
   const items = content.split("\n").map((item) => item.replace(/^\s*(?:\d+[.)]\s*|[•*-]\s*)/, "").trim()).filter(Boolean);
   const List = numbered ? "ol" : "ul";
@@ -80,6 +96,8 @@ export default function Home() {
   const [ordersVersion, setOrdersVersion] = useState(0);
   const [productDetail, setProductDetail] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [paymentOrder, setPaymentOrder] = useState(null);
+  const [showPayment, setShowPayment] = useState(false);
   const [checkoutDetails, setCheckoutDetails] = useState({ customerName: null, phone: "", shippingAddress: "", city: "" });
   const [checkoutError, setCheckoutError] = useState("");
   const [orderSubmitting, setOrderSubmitting] = useState(false);
@@ -167,24 +185,48 @@ export default function Home() {
     return () => { document.body.style.overflow = previousOverflow; };
   }, [mobileAccountSectionOpen]);
   useEffect(() => {
+    if (!authChecked || !customerSession?.user?.id) return undefined;
     let cancelled = false;
-    fetch("/api/products")
-      .then(async (response) => {
+    let requestInFlight = false;
+    async function refreshProducts() {
+      if (cancelled || requestInFlight || document.visibilityState === "hidden") return;
+      requestInFlight = true;
+      try {
+        const response = await fetch("/api/products", { cache: "no-store" });
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error || "Shared products are unavailable.");
-        return body.products;
-      })
-      .then((savedProducts) => {
-        if (cancelled || !Array.isArray(savedProducts)) return;
-        setProducts(savedProducts);
-        setCart((current) => current.map((item) => {
-          const currentProduct = savedProducts.find((product) => product.id === item.id);
-          return currentProduct ? { ...item, ...currentProduct, quantity: item.quantity } : item;
-        }));
-      })
-      .catch((error) => { if (!cancelled) setToast(error.message || "Shared catalogue unavailable; showing sample products."); });
-    return () => { cancelled = true; };
-  }, []);
+        if (!Array.isArray(body.products)) throw new Error("The product catalogue response is invalid.");
+        if (cancelled) return;
+        setProducts((current) => JSON.stringify(current) === JSON.stringify(body.products) ? current : body.products);
+        const productsById = new Map(body.products.map((product) => [product.id, product]));
+        setCart((current) => {
+          const updated = current.flatMap((item) => {
+            const product = productsById.get(item.id);
+            return product ? [{ ...item, ...product, quantity: item.quantity }] : [];
+          });
+          return JSON.stringify(current) === JSON.stringify(updated) ? current : updated;
+        });
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Could not refresh the product catalogue:", error);
+          setToast(error.message || "Shared catalogue unavailable; showing sample products.");
+        }
+      } finally {
+        requestInFlight = false;
+      }
+    }
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refreshProducts(); };
+    void refreshProducts();
+    const interval = window.setInterval(refreshWhenVisible, 3000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [authChecked, customerSession]);
   useEffect(() => {
     let mounted = true;
     let receivedAuthEvent = false;
@@ -305,9 +347,10 @@ export default function Home() {
       setCart([]);
       setShowCheckout(false);
       setCartOpen(false);
+      setPaymentOrder(body.order);
+      setShowPayment(true);
       setOrdersVersion((version) => version + 1);
       setActiveAccountSection("orders");
-      setToast(`Order saved. Send ${money.format(Number(body.order.total))} to MoMo number 0599512072; it will remain pending until verified.`);
       setCheckoutDetails({ customerName: null, phone: "", shippingAddress: "", city: "" });
     } catch (error) {
       setCheckoutError(error.message || "Could not place the order.");
@@ -406,8 +449,9 @@ export default function Home() {
     {activeView === "account" && customerSession && mobileAccountSectionOpen && <button className="account-mobile-back" onClick={() => setMobileAccountSectionOpen(false)}>← Back to account sections</button>}
     {activeView !== "home" && <footer><div className="brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div className="footer-nav"><button onClick={() => navigateTo("shop")}>Shop</button><button onClick={() => navigateTo("about")}>About</button></div><p className="footer-copyright">© 2026 Doresther Tradings. Made with intention. <span className="designer-credit"><span className="designer-credit-label">Designed by</span><strong>Uncle T</strong></span></p></footer>}
     {toast && <div className="toast"><span><Icon name="check" size={17} /></span>{toast}</div>}
-    {isCartOpen && <><button className="modal-backdrop" onClick={() => setCartOpen(false)} aria-label="Close cart" /><aside className="cart-drawer" aria-modal="true" role="dialog" aria-label="Your shopping cart"><div className="drawer-header"><h2>Your cart <span>({cartCount})</span></h2><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Close cart"><Icon name="close" /></button></div>{cart.length ? <><div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><span className="cart-image" style={{ backgroundImage: `url(${item.image})` }} /><div><p className="eyebrow">{item.category}</p><h3>{item.name}</h3><p>{money.format(item.price)}</p><div className="quantity"><button onClick={() => updateQuantity(item.id, -1)} aria-label={`Decrease ${item.name}`}><Icon name="minus" size={14} /></button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} aria-label={`Increase ${item.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-button" onClick={() => updateQuantity(item.id, -item.quantity)}>Remove</button></div>)}</div><div className="cart-summary"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Shipping</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p><button className="primary-button wide" onClick={openCheckout}>Secure checkout <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Sign in required · payment will be verified manually</small></div></> : <div className="cart-empty"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Your cart is waiting.</h3><p>Add an essential to begin your ritual.</p><button className="primary-button" onClick={() => setCartOpen(false)}>Shop collection <Icon name="arrow" size={18} /></button></div>}</aside></>}
+    {isCartOpen && <><button className="modal-backdrop" onClick={() => setCartOpen(false)} aria-label="Close cart" /><aside className="cart-drawer" aria-modal="true" role="dialog" aria-label="Your shopping cart"><div className="drawer-header"><h2>Your cart <span>({cartCount})</span></h2><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Close cart"><Icon name="close" /></button></div>{cart.length ? <><div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><span className="cart-image" style={{ backgroundImage: `url(${item.image})` }} /><div><p className="eyebrow">{item.category}</p><h3>{item.name}</h3><p>{money.format(item.price)}</p><div className="quantity"><button onClick={() => updateQuantity(item.id, -1)} aria-label={`Decrease ${item.name}`}><Icon name="minus" size={14} /></button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} aria-label={`Increase ${item.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-button" onClick={() => updateQuantity(item.id, -item.quantity)}>Remove</button></div>)}</div><div className="cart-summary"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Shipping</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p><button className="primary-button wide" onClick={openCheckout}>Secure checkout <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Sign in required · payment is completed in checkout</small></div></> : <div className="cart-empty"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Your cart is waiting.</h3><p>Add an essential to begin your ritual.</p><button className="primary-button" onClick={() => setCartOpen(false)}>Shop collection <Icon name="arrow" size={18} /></button></div>}</aside></>}
     {productDetail && <><button className="modal-backdrop" onClick={() => setProductDetail(null)} aria-label="Close product details" /><div className="product-modal" role="dialog" aria-modal="true" aria-label={productDetail.name}><button className="icon-button close-modal" onClick={() => setProductDetail(null)} aria-label="Close product details"><Icon name="close" /></button><div className="modal-product-image" style={{ backgroundImage: `url(${productDetail.image})` }} /><div className="modal-product-panel"><div className="modal-product-copy"><p className="eyebrow">{productDetail.category}</p><h2>{productDetail.name}</h2><p className="modal-price">{money.format(productDetail.price)} <span>· {productDetail.size}</span></p><button className="account-text-action product-modal-wishlist" onClick={() => toggleWishlist(productDetail)}><Icon name={wishlist.includes(productDetail.id) ? "favorite" : "heart"} size={17} /> {wishlist.includes(productDetail.id) ? "Saved to wishlist" : "Save to wishlist"}</button><section className="product-guide" aria-label="Product guide"><h3>Product Guide</h3><details open><summary>Product Description</summary><p>{productDetail.description || "Product information is not available yet."}</p></details><details><summary>How to Use</summary><ProductGuideList content={productDetail.howToUse || defaultProductUsage} numbered /></details><details><summary>Caution</summary><ProductGuideList content={productDetail.caution || defaultProductCaution} /></details></section></div><div className="modal-product-actions"><button className="primary-button wide" onClick={() => { addToCart(productDetail); setProductDetail(null); setCartOpen(true); }}>Add to cart <Icon name="bag" size={18} /></button><p className="detail-note"><Icon name="shield" size={17} /> Thoughtfully formulated. Always cruelty-free.</p></div></div></div></>}
     {showCheckout && <><button className="modal-backdrop" onClick={() => setShowCheckout(false)} aria-label="Close checkout" /><section className="checkout-modal checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="checkout-title"><button className="icon-button close-modal" onClick={() => setShowCheckout(false)} aria-label="Close checkout"><Icon name="close" /></button><header className="checkout-heading"><p className="eyebrow">Doresther Tradings</p><h2 id="checkout-title">Checkout</h2></header><div className="checkout-layout"><form className="checkout-form" onSubmit={completeCheckout}><div className="checkout-section-heading"><h3>Delivery details</h3><p>Where should we bring your finds?</p></div><label htmlFor="checkout-name">Full name<input id="checkout-name" required autoComplete="name" maxLength={120} value={checkoutDetails.customerName ?? customerSession?.user?.user_metadata?.full_name ?? ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerName: event.target.value })} placeholder="Your full name" /></label><label htmlFor="checkout-phone">Phone number<input id="checkout-phone" required autoComplete="tel" type="tel" minLength={7} maxLength={30} value={checkoutDetails.phone} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, phone: event.target.value })} placeholder="e.g. 024 000 0000" /></label><label htmlFor="checkout-address">Delivery address<textarea id="checkout-address" required autoComplete="street-address" minLength={8} maxLength={500} value={checkoutDetails.shippingAddress} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, shippingAddress: event.target.value })} placeholder="House number, street, landmark" /></label><label htmlFor="checkout-city">City / town<input id="checkout-city" required autoComplete="address-level2" minLength={2} maxLength={120} value={checkoutDetails.city} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, city: event.target.value })} placeholder="e.g. Accra" /></label>{checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}<button className="primary-button wide" type="submit" disabled={orderSubmitting}>{orderSubmitting ? "Saving order…" : "Place order"} <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Prices and total are confirmed by the server when the order is placed.</small></form><aside className="checkout-summary"><div className="checkout-summary-heading"><h3>Order summary</h3><span>{cartCount} {cartCount === 1 ? "item" : "items"}</span></div><div className="checkout-summary-items">{cart.map((item) => <article className="checkout-summary-item" key={item.id}><span className="checkout-summary-image" style={{ backgroundImage: `url(${item.image})` }} role="img" aria-label={item.name} /><div><h4>{item.name}</h4><p>Qty {item.quantity}</p></div><strong>{money.format(item.price * item.quantity)}</strong></article>)}</div><div className="checkout-summary-totals"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Delivery</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="checkout-summary-total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p></div></aside></div></section></>}
+    {showPayment && paymentOrder && <PaymentPage order={paymentOrder} onClose={() => { setShowPayment(false); setActiveAccountSection("orders"); navigateTo("account"); }} />}
   </main>;
 }

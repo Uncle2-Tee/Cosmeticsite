@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function AdminLogin({ configured }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -48,7 +51,12 @@ export default function AdminLogin({ configured }) {
           <label htmlFor="admin-username">Username</label>
           <input id="admin-username" type="text" value={username} onChange={(event) => setUsername(event.target.value)} required autoComplete="username" autoFocus />
           <label htmlFor="admin-password">Password</label>
-          <input id="admin-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />
+          <span className="admin-login-password-field">
+            <input id="admin-password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />
+            <button type="button" className="admin-login-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
+              {showPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}
+            </button>
+          </span>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button type="submit" disabled={submitting}>
             <span>{submitting ? "Signing in…" : "Sign in to dashboard"}</span><span aria-hidden="true">→</span>
