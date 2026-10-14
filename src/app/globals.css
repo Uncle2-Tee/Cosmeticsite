@@ -560,6 +560,9 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .customer-auth-screen { display:flex; align-items:center; justify-content:center; padding:32px 20px; background:radial-gradient(ellipse at 15% 10%,rgba(255,255,255,.65),transparent 38%),linear-gradient(145deg,#fff0dc 0%,#ffe4c3 100%); color:var(--ink); }
 .auth-gate .customer-signup-screen { position:relative; inset:auto; min-height:100dvh; overflow:visible; align-items:flex-start; padding:48px 20px; }
 .customer-signup-screen .customer-auth-card { margin:0 auto; }
+.customer-signup-screen .customer-auth-wordmark { margin-bottom:16px; }
+.customer-signup-screen .customer-auth-intro { margin-top:6px; }
+.customer-signup-screen .customer-auth-card form { margin-top:18px; }
 .customer-auth-card { width:min(100%,460px); margin:auto; padding:clamp(28px,4vw,42px); border:1px solid rgba(255,255,255,.9); border-radius:22px; background:#fffefd; color:var(--ink); box-shadow:0 18px 48px rgba(126,77,37,.16),0 3px 10px rgba(80,58,42,.06); }
 .customer-auth-wordmark { display:flex; align-items:center; justify-content:center; gap:10px; margin:0 0 24px; }
 .customer-auth-monogram { display:grid; width:36px; height:36px; place-items:center; border-radius:50%; background:#fff0e1; color:#e9792f; font:400 20px/1 Georgia,"Times New Roman",serif; }
