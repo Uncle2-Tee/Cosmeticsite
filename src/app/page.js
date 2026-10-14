@@ -255,7 +255,7 @@ export default function Home() {
   };
   const openSearch = () => {
     navigateTo("shop");
-    window.setTimeout(() => document.getElementById("catalog-search")?.focus(), 250);
+    window.requestAnimationFrame(() => document.getElementById("catalog-search")?.focus());
   };
   const openWishlist = () => {
     setActiveAccountSection("wishlist");

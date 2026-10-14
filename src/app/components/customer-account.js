@@ -52,6 +52,7 @@ export default function CustomerAccount({ onSessionChange, onSignInSuccess, acti
   const [ordersError, setOrdersError] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -138,10 +139,14 @@ export default function CustomerAccount({ onSessionChange, onSignInSuccess, acti
   }
 
   async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
     try {
       await signOutCustomer();
     } catch (error) {
       setMessage(error.message || "Could not sign out.");
+    } finally {
+      setSigningOut(false);
     }
   }
 
@@ -203,7 +208,7 @@ export default function CustomerAccount({ onSessionChange, onSignInSuccess, acti
 
   const fullName = session.user.user_metadata?.full_name || session.user.email;
   return <section className="account-page customer-account-root">
-    <header className="account-heading"><div><p className="eyebrow">Customer account</p><h1>Welcome, {fullName}</h1><p>{session.user.email}</p></div><div className="customer-account-actions"><button className="account-cart-link" type="button" onClick={onOpenCart}>Cart <span>{cartCount}</span></button><button className="account-signout-button" type="button" onClick={signOut}><LogoutIcon sx={{ fontSize: 17 }} aria-hidden="true" /> Sign out</button></div></header>
+    <header className="account-heading"><div><p className="eyebrow">Customer account</p><h1>Welcome, {fullName}</h1><p>{session.user.email}</p></div><div className="customer-account-actions"><button className="account-cart-link" type="button" onClick={onOpenCart}>Cart <span>{cartCount}</span></button><button className="account-signout-button" type="button" onClick={signOut} disabled={signingOut}><LogoutIcon sx={{ fontSize: 17 }} aria-hidden="true" /> {signingOut ? "Signing out…" : "Sign out"}</button></div></header>
     <div className="account-layout">
       <nav className="account-sidebar" aria-label="Account sections">
         {accountSections.map(({ id, label, icon: SectionIcon }) => (
