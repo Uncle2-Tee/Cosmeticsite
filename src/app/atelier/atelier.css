@@ -93,11 +93,13 @@
 }
 
 .atelier-shell { min-height:100svh; padding:clamp(16px,4vw,48px); background:radial-gradient(ellipse at 8% 12%,rgba(217,67,120,.09),transparent 34%),#f3f0ed; }
-.admin-login-layout { width:min(100%,480px); display:grid; gap:28px; padding:clamp(30px,6vw,52px); background:var(--atelier-paper); border:1px solid rgba(57,27,47,.1); box-shadow:0 28px 90px rgba(43,23,40,.13); }
-.admin-login-main { display:flex; flex-direction:column; min-width:0; }
+.admin-login-layout { width:min(100%,480px); display:grid; justify-items:center; gap:28px; padding:clamp(30px,6vw,52px); background:var(--atelier-paper); border:1px solid rgba(57,27,47,.1); box-shadow:0 28px 90px rgba(43,23,40,.13); }
+.admin-login-layout > .atelier-brand { align-items:center; text-align:center; }
+.admin-login-main { display:flex; flex-direction:column; width:100%; min-width:0; }
+.admin-login-heading { text-align:center; }
 .admin-login-heading .atelier-kicker { margin:0 0 16px; }
-.admin-login-heading h2 { margin:0; font:400 clamp(38px,4.5vw,54px)/1 Georgia,serif; letter-spacing:-.055em; }
-.admin-login-heading .atelier-intro { max-width:350px; margin:16px 0 32px; color:var(--atelier-muted); font-size:14px; line-height:1.65; }
+.admin-login-heading h1 { margin:0; font-weight:600; }
+.admin-login-heading .atelier-intro { max-width:350px; margin:16px auto 32px; color:var(--atelier-muted); font-size:14px; line-height:1.65; }
 .admin-login-form { display:grid; gap:0; }
 .admin-login-form label { margin:0 0 8px; color:#51434e; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
 .admin-login-form input { width:100%; min-width:0; min-height:49px; margin:0 0 22px; padding:0 14px; border:1px solid rgba(57,27,47,.2); border-radius:3px; outline:none; background:#fff; color:var(--atelier-ink); font-size:14px; transition:border-color .18s,box-shadow .18s; }
@@ -107,10 +109,10 @@
 .admin-login-form .admin-login-password-toggle { position:absolute; top:0; right:0; width:48px; min-height:49px; justify-content:center; margin:0 0 22px; padding:0; border:0; background:transparent; color:#706973; }
 .admin-login-form .admin-login-password-toggle:hover:not(:disabled) { background:transparent; color:var(--atelier-rose); }
 .admin-login-form .admin-login-password-toggle svg { width:20px; height:20px; }
-.admin-login-form button { width:100%; min-height:52px; display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:5px; padding:0 18px; border:1px solid var(--atelier-ink); border-radius:3px; background:var(--atelier-ink); color:#fff; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; transition:background .18s,color .18s; }
+.admin-login-form button { position:relative; width:100%; min-height:52px; display:flex; align-items:center; justify-content:center; gap:16px; margin-top:5px; padding:0 18px; border:1px solid var(--atelier-ink); border-radius:3px; background:var(--atelier-ink); color:#fff; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; transition:background .18s,color .18s; }
 .admin-login-form button:hover:not(:disabled) { background:#fff; color:var(--atelier-ink); }
 .admin-login-form button:disabled { opacity:.65; cursor:wait; }
-.admin-login-form button span:last-child { font-size:18px; line-height:1; }
+.admin-login-form button span:last-child { position:absolute; right:18px; font-size:18px; line-height:1; }
 .admin-login-form .form-error { margin:0 0 12px; }
 .admin-login-security { margin:15px 0 0; color:#7b737a; font-size:11px; line-height:1.5; }
 .admin-login-footer { margin-top:30px; padding-top:18px; border-top:1px solid var(--atelier-line); }
@@ -120,8 +122,15 @@
 
 @media (max-width:700px) {
   .atelier-shell { display:block; padding:14px; }
-  .admin-login-layout { gap:26px; margin:clamp(8px,4vh,34px) auto; padding:30px 24px 26px; }
-  .admin-login-heading .atelier-intro { margin:12px 0 25px; }
+  .admin-login-layout { gap:18px; margin:clamp(8px,4vh,34px) auto; padding:24px 21px 20px; }
+  .admin-login-heading .atelier-kicker { margin-bottom:10px; }
+  .admin-login-heading .atelier-intro { margin:8px auto 17px; }
+  .admin-login-form label { margin-bottom:6px; }
+  .admin-login-form input { min-height:45px; margin-bottom:15px; }
+  .admin-login-form .admin-login-password-toggle { min-height:45px; }
+  .admin-login-form button { min-height:48px; }
+  .admin-login-security { margin-top:10px; }
+  .admin-login-footer { margin-top:20px; padding-top:13px; }
 }
 
 @media (max-width:360px) {
