@@ -24,7 +24,7 @@ function subscribeToTimeGreeting(onChange) {
 }
 
 function getServerGreeting() {
-  return "Welcome back.";
+  return "Welcome admin.";
 }
 
 async function readApiResponse(response) {

@@ -29,30 +29,22 @@ export default function AdminLogin({ configured }) {
 
   return <main className="atelier-shell">
     <section className="admin-login-layout" aria-labelledby="admin-login-title">
-      <aside className="admin-login-aside">
-        <div className="atelier-brand brand-mark" aria-label="Doresther Tradings">
-          <span className="brand-word">Doresther</span>
-          <span className="brand-tradings">Tradings</span>
-        </div>
-        <div className="admin-login-aside-copy">
-          <p className="admin-login-overline">Private workspace</p>
-          <h1>Thoughtful business starts with a clear view.</h1>
-          <p>Manage your product collection and keep customer orders moving, all from one secure place.</p>
-        </div>
-        <p className="admin-login-aside-foot">Doresther Tradings <span>·</span> Store administration</p>
-      </aside>
+      <div className="atelier-brand brand-mark" aria-label="Doresther Tradings">
+        <span className="brand-word">Doresther</span>
+        <span className="brand-tradings">Tradings</span>
+      </div>
       <div className="admin-login-main">
         <div className="admin-login-heading">
           <p className="atelier-kicker">Admin access</p>
-          <h2 id="admin-login-title">Welcome back.</h2>
+          <h1 id="admin-login-title">Welcome admin</h1>
           <p className="atelier-intro">{configured ? "Sign in with your admin credentials to continue." : "Admin access needs to be configured before you can sign in."}</p>
         </div>
         {configured ? <form className="admin-login-form" onSubmit={submit}>
           <label htmlFor="admin-username">Username</label>
-          <input id="admin-username" type="text" value={username} onChange={(event) => setUsername(event.target.value)} required autoComplete="username" autoFocus />
+          <input id="admin-username" type="text" value={username} onChange={(event) => setUsername(event.target.value)} required autoComplete="username" autoFocus placeholder="e.g. storeadmin" />
           <label htmlFor="admin-password">Password</label>
           <span className="admin-login-password-field">
-            <input id="admin-password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />
+            <input id="admin-password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" placeholder="Enter your admin password" />
             <button type="button" className="admin-login-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
               {showPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}
             </button>

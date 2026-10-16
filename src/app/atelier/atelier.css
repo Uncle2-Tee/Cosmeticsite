@@ -93,19 +93,8 @@
 }
 
 .atelier-shell { min-height:100svh; padding:clamp(16px,4vw,48px); background:radial-gradient(ellipse at 8% 12%,rgba(217,67,120,.09),transparent 34%),#f3f0ed; }
-.admin-login-layout { width:min(100%,1040px); min-height:min(660px,calc(100svh - 96px)); display:grid; grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr); overflow:hidden; background:var(--atelier-paper); border:1px solid rgba(57,27,47,.1); box-shadow:0 28px 90px rgba(43,23,40,.13); }
-.admin-login-aside { position:relative; isolation:isolate; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; padding:clamp(30px,5vw,58px); background:linear-gradient(145deg,#512442,#32192f 80%); color:#fffaf8; }
-.admin-login-aside::before,.admin-login-aside::after { position:absolute; z-index:-1; content:""; border:1px solid rgba(255,255,255,.12); border-radius:50%; pointer-events:none; }
-.admin-login-aside::before { width:440px; height:440px; right:-245px; top:17%; }
-.admin-login-aside::after { width:330px; height:330px; right:-190px; top:25%; }
-.admin-login-aside .atelier-brand { color:#fffaf8; }
-.admin-login-aside-copy { max-width:410px; margin:50px 0; }
-.admin-login-overline { margin:0 0 20px; color:#e5b8cc; font-size:10px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; }
-.admin-login-aside-copy h1 { max-width:400px; margin:0; font:400 clamp(39px,5vw,62px)/.99 Georgia,serif; letter-spacing:-.055em; }
-.admin-login-aside-copy>p:last-child { max-width:340px; margin:22px 0 0; color:rgba(255,250,248,.72); font-size:14px; line-height:1.75; }
-.admin-login-aside-foot { margin:0; color:rgba(255,250,248,.58); font-size:9px; letter-spacing:.12em; text-transform:uppercase; }
-.admin-login-aside-foot span { padding:0 6px; color:#e5b8cc; }
-.admin-login-main { display:flex; flex-direction:column; justify-content:center; min-width:0; padding:clamp(34px,6vw,72px); }
+.admin-login-layout { width:min(100%,480px); display:grid; gap:28px; padding:clamp(30px,6vw,52px); background:var(--atelier-paper); border:1px solid rgba(57,27,47,.1); box-shadow:0 28px 90px rgba(43,23,40,.13); }
+.admin-login-main { display:flex; flex-direction:column; min-width:0; }
 .admin-login-heading .atelier-kicker { margin:0 0 16px; }
 .admin-login-heading h2 { margin:0; font:400 clamp(38px,4.5vw,54px)/1 Georgia,serif; letter-spacing:-.055em; }
 .admin-login-heading .atelier-intro { max-width:350px; margin:16px 0 32px; color:var(--atelier-muted); font-size:14px; line-height:1.65; }
@@ -131,17 +120,11 @@
 
 @media (max-width:700px) {
   .atelier-shell { display:block; padding:14px; }
-  .admin-login-layout { width:min(100%,480px); min-height:0; grid-template-columns:minmax(0,1fr); margin:clamp(8px,4vh,34px) auto; }
-  .admin-login-aside { min-height:0; padding:25px 24px 23px; }
-  .admin-login-aside-copy { margin:39px 0 28px; }
-  .admin-login-aside-copy h1 { max-width:390px; font-size:clamp(35px,10vw,48px); }
-  .admin-login-aside-copy>p:last-child { margin-top:14px; font-size:13px; }
-  .admin-login-aside-foot { font-size:8px; }
-  .admin-login-main { padding:30px 24px 26px; }
+  .admin-login-layout { gap:26px; margin:clamp(8px,4vh,34px) auto; padding:30px 24px 26px; }
   .admin-login-heading .atelier-intro { margin:12px 0 25px; }
 }
 
 @media (max-width:360px) {
   .atelier-shell { padding:9px; }
-  .admin-login-aside,.admin-login-main { padding-right:19px; padding-left:19px; }
+  .admin-login-layout { padding-right:19px; padding-left:19px; }
 }
