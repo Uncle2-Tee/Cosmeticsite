@@ -27,6 +27,25 @@ function subscribeToTimeGreeting(onChange) {
   return () => window.clearInterval(interval);
 }
 
+function getNotificationPermission() {
+  return typeof Notification === "undefined" ? "unsupported" : Notification.permission;
+}
+
+function getServerNotificationPermission() {
+  return "unsupported";
+}
+
+function subscribeToNotificationPermission(onChange) {
+  window.addEventListener("focus", onChange);
+  document.addEventListener("visibilitychange", onChange);
+  window.addEventListener("notificationpermissionchange", onChange);
+  return () => {
+    window.removeEventListener("focus", onChange);
+    document.removeEventListener("visibilitychange", onChange);
+    window.removeEventListener("notificationpermissionchange", onChange);
+  };
+}
+
 function getServerGreeting() {
   return "Welcome admin.";
 }
@@ -51,7 +70,11 @@ export default function AdminDashboard({ username }) {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [orderMessage, setOrderMessage] = useState("");
   const [newOrders, setNewOrders] = useState([]);
-  const [notificationPermission, setNotificationPermission] = useState(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+  const notificationPermission = useSyncExternalStore(
+    subscribeToNotificationPermission,
+    getNotificationPermission,
+    getServerNotificationPermission,
+  );
   const [refreshOrdersKey, setRefreshOrdersKey] = useState(0);
   const [passwordPanelOpen, setPasswordPanelOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -205,12 +228,11 @@ export default function AdminDashboard({ username }) {
   async function enableOrderNotifications() {
     if (typeof Notification === "undefined") {
       setOrderMessage("Browser notifications are not supported here. New orders will still appear in this dashboard.");
-      setNotificationPermission("unsupported");
       return;
     }
     try {
       const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
+      window.dispatchEvent(new Event("notificationpermissionchange"));
       setOrderMessage(permission === "granted"
         ? "Browser notifications are enabled for new orders."
         : permission === "denied"
@@ -218,6 +240,7 @@ export default function AdminDashboard({ username }) {
           : "Notification permission was not granted. New orders will still appear here.");
     } catch (error) {
       console.error("Could not request browser notification permission:", error);
+      window.dispatchEvent(new Event("notificationpermissionchange"));
       setOrderMessage("Could not enable browser notifications. New orders will still appear here.");
     }
   }
@@ -300,15 +323,15 @@ export default function AdminDashboard({ username }) {
         <div className="admin-password-fields">
           <div className="admin-password-field">
             <label htmlFor="admin-current-password">Current password</label>
-            <span className="admin-password-input"><input id="admin-current-password" type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required /><button type="button" className="admin-password-visibility" onClick={() => setShowCurrentPassword((visible) => !visible)} aria-label={showCurrentPassword ? "Hide current password" : "Show current password"} aria-pressed={showCurrentPassword}>{showCurrentPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
+            <span className="admin-password-input"><input id="admin-current-password" type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" placeholder="Enter your current password" required /><button type="button" className="admin-password-visibility" onClick={() => setShowCurrentPassword((visible) => !visible)} aria-label={showCurrentPassword ? "Hide current password" : "Show current password"} aria-pressed={showCurrentPassword}>{showCurrentPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
           </div>
           <div className="admin-password-field">
             <label htmlFor="admin-new-password">New password</label>
-            <span className="admin-password-input"><input id="admin-new-password" type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" minLength={12} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={showNewPassword ? "Hide new password" : "Show new password"} aria-pressed={showNewPassword}>{showNewPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
+            <span className="admin-password-input"><input id="admin-new-password" type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" placeholder="e.g. a unique 12+ character phrase" minLength={12} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={showNewPassword ? "Hide new password" : "Show new password"} aria-pressed={showNewPassword}>{showNewPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
           </div>
           <div className="admin-password-field">
             <label htmlFor="admin-confirm-password">Confirm new password</label>
-            <span className="admin-password-input"><input id="admin-confirm-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={12} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmPassword}>{showConfirmPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
+            <span className="admin-password-input"><input id="admin-confirm-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" placeholder="Re-enter your new password" minLength={12} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmPassword}>{showConfirmPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
           </div>
         </div>
         {passwordFeedback && <p className={`admin-password-feedback ${passwordFeedback.type}`} role={passwordFeedback.type === "error" ? "alert" : "status"}>{passwordFeedback.message}</p>}
