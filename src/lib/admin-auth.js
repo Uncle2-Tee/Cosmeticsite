@@ -1,7 +1,10 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { hashPassword, verifyPassword } from "./customer-auth";
+import { prisma } from "./prisma";
 
 export const ADMIN_SESSION_COOKIE = "doresther_admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 8;
+const ADMIN_CREDENTIAL_ID = "admin";
 
 function sessionSecret() {
   const secret = process.env.ADMIN_SESSION_SECRET;
@@ -22,25 +25,46 @@ export function isAdminAuthConfigured() {
   return Boolean(process.env.ADMIN_USERNAME?.trim() && process.env.ADMIN_PASSWORD && sessionSecret());
 }
 
-export function credentialsMatch(username, password) {
+export async function credentialsMatch(username, password) {
   const configuredUsername = process.env.ADMIN_USERNAME?.trim().toLowerCase();
+  if (!configuredUsername || typeof username !== "string" || typeof password !== "string") return false;
+  if (!signaturesMatch(configuredUsername, username.trim().toLowerCase())) return false;
+
+  const credential = await prisma.adminCredential.findUnique({ where: { id: ADMIN_CREDENTIAL_ID } });
+  if (credential) return verifyPassword(password, credential.passwordHash);
+
   const configuredPassword = process.env.ADMIN_PASSWORD;
-  return Boolean(
-    configuredUsername
-    && typeof username === "string"
-    && signaturesMatch(configuredUsername, username.trim().toLowerCase())
-    && configuredPassword
-    && typeof password === "string"
-    && signaturesMatch(configuredPassword, password),
-  );
+  return Boolean(configuredPassword && signaturesMatch(configuredPassword, password));
 }
 
-export function createAdminSession() {
+export async function changeAdminPassword(currentPassword, newPassword) {
+  const username = process.env.ADMIN_USERNAME?.trim();
+  if (!username || !(await credentialsMatch(username, currentPassword))) return null;
+
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.adminCredential.upsert({
+    where: { id: ADMIN_CREDENTIAL_ID },
+    create: { id: ADMIN_CREDENTIAL_ID, passwordHash, sessionVersion: 1 },
+    update: { passwordHash, sessionVersion: { increment: 1 } },
+  });
+  return createAdminSession();
+}
+
+export async function createAdminSession() {
   const secret = sessionSecret();
   const username = process.env.ADMIN_USERNAME?.trim();
   if (!secret || !username) return null;
+  const credential = await prisma.adminCredential.findUnique({
+    where: { id: ADMIN_CREDENTIAL_ID },
+    select: { sessionVersion: true },
+  });
   const expiresAt = Date.now() + SESSION_MAX_AGE * 1000;
-  const payload = Buffer.from(JSON.stringify({ role: "admin", username, expiresAt })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({
+    role: "admin",
+    username,
+    expiresAt,
+    sessionVersion: credential?.sessionVersion ?? 0,
+  })).toString("base64url");
   const signature = createHmac("sha256", secret).update(payload).digest("base64url");
   return { value: `${payload}.${signature}`, expiresAt, username };
 }
@@ -65,8 +89,18 @@ function parseAdminSession(session = "") {
   }
 }
 
-export function hasValidAdminSession(session = "") {
-  return Boolean(parseAdminSession(session));
+export async function hasValidAdminSession(session = "") {
+  const claims = parseAdminSession(session);
+  if (!claims) return false;
+  try {
+    const credential = await prisma.adminCredential.findUnique({
+      where: { id: ADMIN_CREDENTIAL_ID },
+      select: { sessionVersion: true },
+    });
+    return (claims.sessionVersion ?? 0) === (credential?.sessionVersion ?? 0);
+  } catch {
+    return false;
+  }
 }
 
 export function getAdminSessionUsername(session = "") {

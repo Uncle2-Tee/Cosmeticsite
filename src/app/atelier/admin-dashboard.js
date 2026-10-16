@@ -4,6 +4,10 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import NotificationsIcon from "@mui/icons-material/NotificationsNone";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import LockResetIcon from "@mui/icons-material/LockReset";
+import CloseIcon from "@mui/icons-material/Close";
+import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
 import { notifyCustomerOrderUpdate } from "../../lib/customer-order-updates";
 
@@ -49,6 +53,15 @@ export default function AdminDashboard({ username }) {
   const [newOrders, setNewOrders] = useState([]);
   const [notificationPermission, setNotificationPermission] = useState(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
   const [refreshOrdersKey, setRefreshOrdersKey] = useState(0);
+  const [passwordPanelOpen, setPasswordPanelOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState(null);
   const knownOrderIds = useRef(new Set());
   const initialOrdersLoaded = useRef(false);
   const router = useRouter();
@@ -233,8 +246,75 @@ export default function AdminDashboard({ username }) {
     router.refresh();
   }
 
+  function togglePasswordPanel() {
+    const nextOpen = !passwordPanelOpen;
+    setPasswordPanelOpen(nextOpen);
+    setPasswordFeedback(null);
+    if (!nextOpen) {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+    }
+  }
+
+  async function updateAdminPassword(event) {
+    event.preventDefault();
+    setPasswordFeedback(null);
+    if (newPassword !== confirmPassword) {
+      setPasswordFeedback({ type: "error", message: "The new passwords do not match." });
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      await readApiResponse(await fetch("/api/admin/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      }));
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setPasswordFeedback({ type: "success", message: "Password updated. Other admin sessions have been signed out." });
+    } catch (error) {
+      setPasswordFeedback({ type: "error", message: error.message || "Could not update the password." });
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
   return <main className="dashboard-shell">
-    <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div><span className="secure-status">● Signed in as {username}</span><button onClick={signOut}>Sign out</button></div></header>
+    <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
+    {passwordPanelOpen && <section className="admin-password-panel" id="admin-password-panel" aria-labelledby="admin-password-heading">
+      <div className="admin-password-panel-heading">
+        <div><p className="atelier-kicker">Security</p><h2 id="admin-password-heading">Change password</h2></div>
+        <button type="button" className="admin-password-close" onClick={togglePasswordPanel} aria-label="Close change password form"><CloseIcon fontSize="small" /></button>
+      </div>
+      <form className="admin-password-form" onSubmit={updateAdminPassword}>
+        <div className="admin-password-fields">
+          <div className="admin-password-field">
+            <label htmlFor="admin-current-password">Current password</label>
+            <span className="admin-password-input"><input id="admin-current-password" type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required /><button type="button" className="admin-password-visibility" onClick={() => setShowCurrentPassword((visible) => !visible)} aria-label={showCurrentPassword ? "Hide current password" : "Show current password"} aria-pressed={showCurrentPassword}>{showCurrentPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
+          </div>
+          <div className="admin-password-field">
+            <label htmlFor="admin-new-password">New password</label>
+            <span className="admin-password-input"><input id="admin-new-password" type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" minLength={12} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={showNewPassword ? "Hide new password" : "Show new password"} aria-pressed={showNewPassword}>{showNewPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
+          </div>
+          <div className="admin-password-field">
+            <label htmlFor="admin-confirm-password">Confirm new password</label>
+            <span className="admin-password-input"><input id="admin-confirm-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={12} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmPassword}>{showConfirmPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
+          </div>
+        </div>
+        {passwordFeedback && <p className={`admin-password-feedback ${passwordFeedback.type}`} role={passwordFeedback.type === "error" ? "alert" : "status"}>{passwordFeedback.message}</p>}
+        <div className="admin-password-actions"><p>Use 12 to 128 characters. Other admin sessions will be signed out.</p><button type="submit" disabled={passwordSaving}><LockResetIcon fontSize="small" aria-hidden="true" />{passwordSaving ? "Updating…" : "Update password"}</button></div>
+      </form>
+    </section>}
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Check DATABASE_URL in your environment and run `npx prisma db push` if the schema has not been applied.</p>}
     <section className="orders-panel" aria-labelledby="orders-heading">

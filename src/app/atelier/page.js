@@ -12,7 +12,7 @@ export const metadata = {
 export default async function AtelierPage() {
   const cookieStore = await cookies();
   const session = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  const authenticated = hasValidAdminSession(session);
+  const authenticated = await hasValidAdminSession(session);
 
   return authenticated
     ? <AdminDashboard username={getAdminSessionUsername(session)} />

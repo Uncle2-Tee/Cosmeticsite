@@ -41,6 +41,8 @@ npm run db:seed
 
 The seed command adds the existing starter catalogue products without replacing products already in the database. The application connects to PostgreSQL only from server routes through Prisma. Do not expose database credentials to browser code. Restart the development server after editing `.env.local`.
 
+After applying the schema, admins can change their password from the dashboard. The new password is scrypt-hashed in the `admin_credentials` table; `ADMIN_PASSWORD` remains the bootstrap password until the first change. Changing it signs out other admin sessions while keeping the current session active. For password recovery, delete the `admin` row from `public.admin_credentials` in a trusted database console; the configured `ADMIN_PASSWORD` can then be used to sign in again.
+
 On Vercel or another serverless host, add these variables in the project’s production environment settings. The admin username and password never reach the browser as configuration values. A successful sign-in creates an HMAC-signed, HTTP-only, SameSite-Strict session cookie containing the signed-in username; it expires after eight hours, and production cookies are HTTPS-only.
 
 ## Database-backed store
