@@ -8,7 +8,12 @@ async function request(path, { method = "GET", body } = {}) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || "The request could not be completed.");
+  if (!response.ok) {
+    const error = new Error(result.error || "The request could not be completed.");
+    error.status = response.status;
+    error.existingAccount = result.existingAccount === true;
+    throw error;
+  }
   return result;
 }
 
@@ -17,17 +22,31 @@ export async function getCustomerSession() {
   return session;
 }
 
-export async function signUpCustomer({ fullName, email, password }) {
-  return request("/api/auth/signup", {
+export async function startCustomerVerification(identifier) {
+  return request("/api/auth/verification", {
     method: "POST",
-    body: { fullName, email, password },
+    body: { identifier },
   });
 }
 
-export async function signInCustomer({ email, password }) {
+export async function verifyCustomerContact(identifier, code) {
+  return request("/api/auth/verification", {
+    method: "PATCH",
+    body: { identifier, code },
+  });
+}
+
+export async function signUpCustomer({ identifier, password }) {
+  return request("/api/auth/signup", {
+    method: "POST",
+    body: { identifier, password },
+  });
+}
+
+export async function signInCustomer({ identifier, password }) {
   const { session } = await request("/api/auth/signin", {
     method: "POST",
-    body: { email, password },
+    body: { identifier, password },
   });
   publishCustomerSession(session);
   return session;

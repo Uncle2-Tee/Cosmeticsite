@@ -18,6 +18,7 @@ export function publicCustomer(profile) {
   return {
     id: profile.id,
     email: profile.email,
+    phone: profile.phone,
     user_metadata: { full_name: profile.fullName },
   };
 }

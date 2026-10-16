@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createCustomerSession, customerSessionCookieOptions, CUSTOMER_SESSION_COOKIE, hashPassword, publicCustomer, verifyPassword } from "../../../../lib/customer-auth";
+import { normalizeCustomerIdentifier } from "../../../../lib/customer-identity";
 import { prisma } from "../../../../lib/prisma";
 
 export const runtime = "nodejs";
@@ -12,19 +13,21 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid sign-in details." }, { status: 400 });
   }
 
-  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+  const contact = normalizeCustomerIdentifier(body?.identifier ?? body?.email);
   const password = typeof body?.password === "string" ? body.password : "";
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password || password.length > 128) {
-    return NextResponse.json({ error: "Enter a valid email address and password." }, { status: 400 });
+  if (!contact || !password || password.length > 128) {
+    return NextResponse.json({ error: "Enter a valid email or phone number and password." }, { status: 400 });
   }
 
   try {
-    const profile = await prisma.customerProfile.findUnique({ where: { email } });
+    const profile = await prisma.customerProfile.findUnique({
+      where: contact.type === "email" ? { email: contact.email } : { phone: contact.phone },
+    });
     const passwordMatches = profile
       ? await verifyPassword(password, profile.passwordHash)
       : (await hashPassword(password), false);
     if (!profile || !passwordMatches) {
-      return NextResponse.json({ error: "Email or password is incorrect." }, { status: 401 });
+      return NextResponse.json({ error: "Email/phone or password is incorrect." }, { status: 401 });
     }
 
     const session = await createCustomerSession(profile);

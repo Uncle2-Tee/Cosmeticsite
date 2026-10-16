@@ -587,6 +587,9 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .customer-auth-card form input { width:100%; min-height:47px; padding:10px 13px; border:1px solid #e2dfdc; border-radius:11px; background:#f6f6f5; color:var(--ink); font-size:14px; letter-spacing:0; text-transform:none; transition:border-color .18s ease,box-shadow .18s ease,background .18s ease; }
 .customer-auth-card form input::placeholder { color:#9a9997; opacity:1; }
 .customer-auth-card form input:focus-visible { outline:0; border-color:#f18a46; background:#fff; box-shadow:0 0 0 3px rgba(241,138,70,.16); }
+.customer-auth-identifier { min-height:47px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 13px; border:1px solid #e2dfdc; border-radius:11px; background:#f6f6f5; color:#403a36; font-size:13px; }
+.customer-auth-identifier span { min-width:0; overflow-wrap:anywhere; }
+.customer-auth-identifier .account-text-action { flex:0 0 auto; padding:0; color:#d96f27; font-size:12px; }
 .customer-password-field { position:relative; display:block; }
 .customer-password-field input { padding-right:62px !important; }
 .customer-password-toggle { position:absolute; top:50%; right:8px; display:grid; width:36px; height:36px; place-items:center; transform:translateY(-50%); border:0; border-radius:50%; background:transparent; color:#81766e; cursor:pointer; }

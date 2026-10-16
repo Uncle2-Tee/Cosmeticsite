@@ -53,6 +53,17 @@ The API validates the HTTP-only customer session cookie and only returns orders 
 
 Before accepting real payments, connect a payment provider and implement verified payment callbacks and order status updates.
 
+Customer sign-up verifies the chosen email or phone number before allowing account creation. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for email verification, and `ARKESEL_API_KEY` plus a registered `ARKESEL_SENDER_ID` for SMS verification. These values must be server-side environment variables; do not expose or commit provider keys. After verifying contact and creating a password, customers are sent to password-only login.
+
+Add these values to `.env.local` for local development and to the deployment environment for production:
+
+```dotenv
+RESEND_API_KEY=your-resend-api-key
+RESEND_FROM_EMAIL=Doresther Tradings <verified-sender@example.com>
+ARKESEL_API_KEY=your-arkesel-main-api-key
+ARKESEL_SENDER_ID=your-registered-sender-id
+```
+
 ## Checks
 
 ```bash

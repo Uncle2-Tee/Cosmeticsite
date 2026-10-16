@@ -258,10 +258,15 @@ export default function Home() {
     };
   }, []);
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(""), 2800); return () => window.clearTimeout(timer); }, [toast]);
-  const handleSignInSuccess = useCallback(() => {
+  const handleSignInSuccess = useCallback((session) => {
     window.history.replaceState({}, "", "/");
     setActiveView("home");
     if (checkoutPendingAuth) {
+      setCheckoutDetails((current) => ({
+        ...current,
+        customerName: current.customerName ?? session?.user?.user_metadata?.full_name ?? "",
+        phone: current.phone || session?.user?.phone || "",
+      }));
       setCheckoutPendingAuth(false);
       setCheckoutError("");
       setShowCheckout(true);
@@ -326,6 +331,11 @@ export default function Home() {
       navigateTo("account");
       return;
     }
+    setCheckoutDetails((current) => ({
+      ...current,
+      customerName: current.customerName ?? customerSession.user.user_metadata?.full_name ?? "",
+      phone: current.phone || customerSession.user.phone || "",
+    }));
     setCheckoutError("");
     setShowCheckout(true);
   };

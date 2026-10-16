@@ -43,7 +43,7 @@ model Order {
   shipping        Decimal  @db.Decimal(10, 2)
   total           Decimal  @db.Decimal(10, 2)
   customerName    String   @map("customer_name")
-  customerEmail   String   @map("customer_email")
+  customerEmail   String?  @map("customer_email")
   phone           String
   shippingAddress String   @map("shipping_address")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -53,8 +53,9 @@ model Order {
 
 model CustomerProfile {
   id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  fullName     String            @map("full_name")
-  email        String            @unique
+  fullName     String?           @map("full_name")
+  email        String?           @unique
+  phone        String?           @unique
   passwordHash String            @map("password_hash")
   cart         Json              @default("[]") @db.JsonB
   wishlist     Json              @default("[]") @db.JsonB
@@ -63,6 +64,22 @@ model CustomerProfile {
   sessions     CustomerSession[]
 
   @@map("customer_profiles")
+}
+
+model CustomerVerification {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  identifier String    @unique
+  destination String
+  channel    String
+  codeHash   String?   @map("code_hash")
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  verifiedAt DateTime? @map("verified_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("customer_verifications")
 }
 
 model CustomerSession {

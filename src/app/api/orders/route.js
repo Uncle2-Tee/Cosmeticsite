@@ -94,7 +94,7 @@ export async function POST(request) {
         shipping,
         total: Number((subtotal + shipping).toFixed(2)),
         customerName: customerName.trim(),
-        customerEmail: user.email,
+        customerEmail: user.email || null,
         phone: phone.trim(),
         shippingAddress: `${shippingAddress.trim()}\nCity / town: ${city.trim()}`,
       },
