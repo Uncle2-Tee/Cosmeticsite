@@ -35,7 +35,6 @@ export default function AdminLogin({ configured }) {
       </div>
       <div className="admin-login-main">
         <div className="admin-login-heading">
-          <p className="atelier-kicker">Admin access</p>
           <h1 id="admin-login-title">Welcome admin</h1>
           <p className="atelier-intro">{configured ? "Sign in with your admin credentials to continue." : "Admin access needs to be configured before you can sign in."}</p>
         </div>
