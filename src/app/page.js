@@ -96,6 +96,7 @@ export default function Home() {
   const [ordersVersion, setOrdersVersion] = useState(0);
   const [productDetail, setProductDetail] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutPendingAuth, setCheckoutPendingAuth] = useState(false);
   const [paymentOrder, setPaymentOrder] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [checkoutDetails, setCheckoutDetails] = useState({ customerName: null, phone: "", shippingAddress: "", city: "" });
@@ -185,7 +186,7 @@ export default function Home() {
     return () => { document.body.style.overflow = previousOverflow; };
   }, [mobileAccountSectionOpen]);
   useEffect(() => {
-    if (!authChecked || !customerSession?.user?.id) return undefined;
+    if (!authChecked) return undefined;
     let cancelled = false;
     let requestInFlight = false;
     let reportedProductsError = false;
@@ -229,7 +230,7 @@ export default function Home() {
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, [authChecked, customerSession]);
+  }, [authChecked]);
   useEffect(() => {
     let mounted = true;
     let receivedAuthEvent = false;
@@ -260,7 +261,12 @@ export default function Home() {
   const handleSignInSuccess = useCallback(() => {
     window.history.replaceState({}, "", "/");
     setActiveView("home");
-  }, []);
+    if (checkoutPendingAuth) {
+      setCheckoutPendingAuth(false);
+      setCheckoutError("");
+      setShowCheckout(true);
+    }
+  }, [checkoutPendingAuth]);
   const handleAccountUpdated = useCallback((user) => {
     setCustomerSession((current) => current ? { ...current, user } : current);
   }, []);
@@ -297,6 +303,7 @@ export default function Home() {
     const url = view === "home" ? "/" : `/?view=${view}`;
     window.history.pushState({}, "", url);
     setActiveView(view);
+    if (view !== "account") setCheckoutPendingAuth(false);
     if (view !== "account") setMobileAccountSectionOpen(false);
     if (view === "account") window.scrollTo(0, 0);
     else window.scrollTo({ top: 0, behavior: "smooth" });
@@ -313,8 +320,9 @@ export default function Home() {
   };
   const openCheckout = () => {
     if (!customerSession?.user?.id) {
+      setCheckoutPendingAuth(true);
       setCartOpen(false);
-      setToast("Sign in or create an account before placing an order.");
+      setToast("Sign in or create an account to continue checkout.");
       navigateTo("account");
       return;
     }
@@ -326,7 +334,8 @@ export default function Home() {
     if (!customerSession?.user?.id) {
       setShowCheckout(false);
       setCartOpen(false);
-      setToast("Sign in or create an account before placing an order.");
+      setCheckoutPendingAuth(true);
+      setToast("Sign in or create an account to continue checkout.");
       navigateTo("account");
       return;
     }
@@ -362,10 +371,6 @@ export default function Home() {
   };
 
   const customerAccount = <CustomerAccount session={customerSession} onSignInSuccess={handleSignInSuccess} onAccountUpdated={handleAccountUpdated} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
-
-  if (!customerSession?.user) {
-    return <main className="auth-gate">{customerAccount}</main>;
-  }
 
   return <main className={`page-view page-${activeView}${mobileAccountSectionOpen ? " mobile-account-section-open" : ""}`}>
     <header className="site-header"><div className="brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><nav className="main-nav" aria-label="Main navigation"><button className={activeView === "home" ? "active" : ""} onClick={() => navigateTo("home")}>Home</button><button className={activeView === "shop" ? "active" : ""} onClick={() => navigateTo("shop")}>Shop</button><button className={activeView === "about" ? "active" : ""} onClick={() => navigateTo("about")}>About</button></nav><div className="header-actions"><button className="icon-button mobile-wishlist-toggle" onClick={openWishlist} aria-label={`Wishlist, ${wishlistProducts.length} saved items`}><Icon name="heart" /></button><button className="icon-button account-toggle" onClick={() => navigateTo("account")} aria-label="Account"><Icon name="user" /></button><button className="bag-button" onClick={() => setCartOpen(true)} aria-label={`Open cart, ${cartCount} items`}><Icon name="bag" /><span>Cart</span><b>{cartCount}</b></button></div></header>
